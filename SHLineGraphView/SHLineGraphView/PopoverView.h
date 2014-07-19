@@ -78,25 +78,25 @@
     CGRect boxFrame;
     CGSize contentSize;
     CGPoint arrowPoint;
-    
+
     BOOL above;
-    
+
     __WEAK id<PopoverViewDelegate> delegate;
-    
+
     UIView *parentView;
-    
+
     UIView *topView;
-    
+
     NSArray *subviewsArray;
-    
+
     NSArray *dividerRects;
-    
+
     UIView *contentView;
-    
+
     UIView *titleView;
-    
+
     UIActivityIndicatorView *activityIndicator;
-    
+
     //Instance variable that can change at runtime
     BOOL showDividerRects;
 }
