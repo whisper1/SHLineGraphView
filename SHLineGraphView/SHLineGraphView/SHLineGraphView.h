@@ -36,12 +36,13 @@ typedef NS_ENUM(NSInteger, SHLineGraphUnit) {
 @required
 -(NSInteger)numberOfPlotsInLineGraph:(SHLineGraphView *)lineGraph;
 -(NSInteger)lineGraph:(SHLineGraphView *)lineGraph numberOfPointsInPlotIndex:(NSInteger)plotIndex;
--(SHDataPoint *)lineGraph:(SHLineGraphView *)lineGraph dataPointInPlotIndex:(NSInteger)plotIndex ForPoint:(NSInteger)pointIndex;
+
+-(double)lineGraph:(SHLineGraphView *)lineGraph XValueInPlotIndex:(NSInteger)plotIndex forPoint:(NSInteger)pointIndex;
+-(double)lineGraph:(SHLineGraphView *)lineGraph YValueInPlotIndex:(NSInteger)plotIndex forPoint:(NSInteger)pointIndex;
 
 @optional
 
-
--(NSString *)titleForPoint:(NSInteger)pointIndex inPlotIndex:(NSInteger)plotIndex;
+-(NSString *)titleForLineGraph:(SHLineGraphView *)lineGraph;
 -(NSString *)titleForPlotIndex:(NSInteger)plotIndex;
 
 -(SHPlotStyle *)lineGraph:(SHLineGraphView *)lineGraph styleForPlotIndex:(NSInteger)plotIndex;
@@ -66,14 +67,20 @@ typedef NS_ENUM(NSInteger, SHLineGraphUnit) {
 
 @property (nonatomic, assign) BOOL bezierMode;
 
+@property (nonatomic, strong) UIFont *titleFont;
+@property (nonatomic, strong) UIColor *titleColor;
 @property (nonatomic, strong) UIColor *labelColor;
 @property (nonatomic, strong) UIFont *labelFont;
+@property (nonatomic, strong) UIFont *hoverTextKeyFont;
+@property (nonatomic, strong) UIFont *hoverTextPlotFont;
+@property (nonatomic, strong) UIFont *hoverTextValueFont;
+@property (nonatomic, strong) UIColor *hoverTextColor;
 @property (nonatomic, strong) UIColor *backgroundLineColor;
 
 /**
  *  this method is the actual method which starts the drawing of the graph and does all the magic. call this method when
  *  you are ready and want to show the graph.
  */
-- (void)reloadGraph;
+- (void)reloadGraphWithAnimated:(BOOL)animated;
 
 @end

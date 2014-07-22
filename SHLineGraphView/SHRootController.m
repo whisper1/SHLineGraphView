@@ -25,6 +25,11 @@
     return self;
 }
 
+-(BOOL)prefersStatusBarHidden
+{
+    return YES;
+}
+
 - (void)viewDidLoad
 {
     [super viewDidLoad];
@@ -58,12 +63,26 @@
                               @2300
                               ];
 
-    [_lineGraph reloadGraph];
+    [_lineGraph reloadGraphWithAnimated:YES];
 
     [self.view addSubview:_lineGraph];
 }
 
 #pragma mark - SHLineGraphViewDelegate
+
+-(NSString *)titleForLineGraph:(SHLineGraphView *)lineGraph
+{
+    return @"Line Graph Title";
+}
+
+-(SHPlotStyle *)lineGraph:(SHLineGraphView *)lineGraph styleForPlotIndex:(NSInteger)plotIndex
+{
+    SHPlotStyle *style = [[SHPlotStyle alloc] init];
+//    style.fillColor = [UIColor clearColor];
+    style.dotSize = 4.0;
+    style.lineSize = 3.0;
+    return style;
+}
 
 -(NSInteger)numberOfPlotsInLineGraph:(SHLineGraphView *)lineGraph
 {
@@ -75,12 +94,19 @@
     return [_plottingValues count];
 }
 
--(SHDataPoint *)lineGraph:(SHLineGraphView *)lineGraph dataPointInPlotIndex:(NSInteger)plotIndex ForPoint:(NSInteger)pointIndex
+-(NSString *)titleForPlotIndex:(NSInteger)plotIndex
 {
-    SHDataPoint *dataPoint = [[SHDataPoint alloc] init];
-    dataPoint.x = (double)pointIndex + plotIndex;
-    dataPoint.y = [[_plottingValues objectAtIndex:pointIndex] doubleValue] + plotIndex * 200;
-    return dataPoint;
+    return @"Segment";
+}
+
+-(double)lineGraph:(SHLineGraphView *)lineGraph XValueInPlotIndex:(NSInteger)plotIndex forPoint:(NSInteger)pointIndex
+{
+    return pointIndex + plotIndex;
+}
+
+-(double)lineGraph:(SHLineGraphView *)lineGraph YValueInPlotIndex:(NSInteger)plotIndex forPoint:(NSInteger)pointIndex
+{
+    return [[_plottingValues objectAtIndex:pointIndex] doubleValue] + plotIndex * 200;
 }
 
 - (void)didReceiveMemoryWarning

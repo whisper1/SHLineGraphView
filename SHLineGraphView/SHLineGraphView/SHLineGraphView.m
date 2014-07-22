@@ -21,8 +21,8 @@
 // SOFTWARE.
 
 #import "SHLineGraphView.h"
-#import "PopoverView.h"
 #import "SHPlot.h"
+#import "SHHoverLabel.h"
 #import <math.h>
 #import <objc/runtime.h>
 
@@ -45,6 +45,11 @@
 @property (nonatomic, assign) double XAxisMax;
 @property (nonatomic, assign) double YAxisMin;
 @property (nonatomic, assign) double YAxisMax;
+
+@property (nonatomic, assign) CGPoint touchLocation;
+@property (nonatomic, assign) BOOL touched;
+
+@property (nonatomic, strong) SHHoverLabel *hoverLabel;
 
 @end
 
@@ -69,14 +74,53 @@
 }
 
 - (void)loadDefaultTheme {
-    _labelColor = [UIColor colorWithRed:0.48 green:0.48 blue:0.49 alpha:1.0];
-    _labelFont = [UIFont fontWithName:@"HelveticaNeue-Light" size:10];
+    _labelColor = [UIColor colorWithRed:0.35 green:0.35 blue:0.35 alpha:1.0];
+    _labelFont = [UIFont fontWithName:@"HelveticaNeue" size:10];
     _backgroundLineColor = [UIColor colorWithRed:0.48 green:0.48 blue:0.49 alpha:0.4];
+    _titleColor = [UIColor blackColor];
+    _titleFont = [UIFont fontWithName:@"HelveticaNeue" size:16];
+    _hoverTextKeyFont = [UIFont fontWithName:@"HelveticaNeue" size:9];
+    _hoverTextPlotFont = [UIFont fontWithName:@"HelveticaNeue" size:11];
+    _hoverTextValueFont = [UIFont fontWithName:@"HelveticaNeue-Bold" size:11];
+    _hoverTextColor = [UIColor blackColor];
+}
+
+#pragma mark - UIView
+
+-(void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
+{
+    if (_touched)
+        return;
+    _touched = YES;
+    _touchLocation = [((UITouch *)[touches anyObject]) locationInView:self];
+    [self reloadGraphWithAnimated:NO];
+}
+
+-(void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event
+{
+    _touchLocation = [((UITouch *)[touches anyObject]) locationInView:self];
+    [self reloadGraphWithAnimated:NO];
+}
+
+-(void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
+{
+    [self touchesEndedOrCancelled:touches withEvent:event];
+}
+
+-(void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event
+{
+    [self touchesEndedOrCancelled:touches withEvent:event];
+}
+
+-(void)touchesEndedOrCancelled:(NSSet *)touches withEvent:(UIEvent *)event
+{
+    _touched = NO;
+    [self reloadGraphWithAnimated:NO];
 }
 
 #pragma mark - Public
 
-- (void)reloadGraph
+- (void)reloadGraphWithAnimated:(BOOL)animated
 {
     NSInteger numPlots = [_delegate numberOfPlotsInLineGraph:self];
     _plots = [[NSMutableArray alloc] initWithCapacity:numPlots];
@@ -94,7 +138,13 @@
         NSInteger numPoints = [_delegate lineGraph:self numberOfPointsInPlotIndex:plotIndex];
         for (int pointIndex=0; pointIndex<numPoints; pointIndex++) {
 
-            SHDataPoint *dataPoint = [_delegate lineGraph:self dataPointInPlotIndex:plotIndex ForPoint:pointIndex];
+            SHDataPoint *dataPoint = [[SHDataPoint alloc] init];
+            dataPoint.x = [_delegate lineGraph:self XValueInPlotIndex:plotIndex forPoint:pointIndex];
+            dataPoint.y = [_delegate lineGraph:self YValueInPlotIndex:plotIndex forPoint:pointIndex];
+            dataPoint.plot = plot;
+            dataPoint.pointIndex = pointIndex;
+            dataPoint.plotIndex = plotIndex;
+
             [dataPoints addObject:dataPoint];
         }
         plot.dataPoints = dataPoints;
@@ -102,15 +152,17 @@
         [_plots addObject:plot];
     }
 
+    [[self subviews] makeObjectsPerformSelector:@selector(removeFromSuperview)];
+    [[self.layer sublayers] makeObjectsPerformSelector:@selector(removeFromSuperlayer)];
+
     [self calculateAxesRanges];
 
     [self drawYLabels];
     [self drawXLabels];
     [self drawLines];
+    [self drawTitle];
 
-    for(SHPlot *plot in _plots) {
-        [self drawPlot:plot];
-    }
+    [self drawPlotsWithAnimated:animated];
 }
 
 -(void)calculateAxesRanges
@@ -155,10 +207,22 @@
     return point;
 }
 
-- (void)drawPlot:(SHPlot *)plot {
+-(void)drawPlotsWithAnimated:(BOOL)animated
+{
+    for (SHPlot *plot in _plots) {
+        [self drawPlot:plot animated:animated];
+    }
+}
+
+- (void)drawPlot:(SHPlot *)plot animated:(BOOL)animated {
 
     if ([plot.dataPoints count] == 0)
         return;
+
+    SHDataPoint *selectedDataPoint = nil;
+    if (_touched) {
+        selectedDataPoint = [self closestDataPointToLocation:_touchLocation];
+    }
 
     CAShapeLayer *backgroundLayer = [CAShapeLayer layer];
     backgroundLayer.frame = self.bounds;
@@ -172,7 +236,7 @@
     //
     CAShapeLayer *circleLayer = [CAShapeLayer layer];
     circleLayer.frame = self.bounds;
-    circleLayer.fillColor = plot.style.fillColor.CGColor;
+    circleLayer.fillColor = plot.style.strokeColor.CGColor;
     circleLayer.backgroundColor = [UIColor clearColor].CGColor;
     [circleLayer setStrokeColor:plot.style.strokeColor.CGColor];
     [circleLayer setLineWidth:(int)plot.style.dotSize];
@@ -218,6 +282,9 @@
         }
 
         CGFloat dotsSize = plot.style.dotSize;
+        if (dataPoint == selectedDataPoint) {
+            dotsSize = 10.0;
+        }
         CGPathAddEllipseInRect(circlePath, NULL, CGRectMake(curPoint.x - dotsSize/2, curPoint.y-dotsSize/2, dotsSize, dotsSize));
 
         prevPrevPoint = prevPoint;
@@ -241,7 +308,9 @@
     animation.duration = 1;
     animation.fromValue = @(0.0);
     animation.toValue = @(1.0);
-    [graphLayer addAnimation:animation forKey:@"strokeEnd"];
+    if (animated) {
+        [graphLayer addAnimation:animation forKey:@"strokeEnd"];
+    }
 
     backgroundLayer.zPosition = 0;
     graphLayer.zPosition = 1;
@@ -250,6 +319,10 @@
     [self.layer addSublayer:graphLayer];
     [self.layer addSublayer:circleLayer];
     [self.layer addSublayer:backgroundLayer];
+
+    if (selectedDataPoint) {
+        [self showPopoverForDataPoint:selectedDataPoint];
+    }
 
 //	NSUInteger count2 = _xAxisValues.count;
 //	for(int i=0; i< count2; i++){
@@ -374,6 +447,44 @@
     return oneHourDelta;
 }
 
+-(NSString *)textForDouble:(double)data withUnit:(SHLineGraphUnit)unit
+{
+    switch (unit) {
+        case kSHLineGraphUnit_Decimal:
+        {
+            NSNumberFormatter *formatter = [[NSNumberFormatter alloc] init];
+            formatter.locale = [NSLocale currentLocale];
+            formatter.numberStyle = NSNumberFormatterDecimalStyle;
+            formatter.usesGroupingSeparator = YES;
+            formatter.roundingMode = NSNumberFormatterRoundHalfUp;
+            formatter.minimumFractionDigits = 0;
+            formatter.maximumFractionDigits = 2;
+            return [formatter stringFromNumber:@(data)];
+        }
+        case kSHLineGraphUnit_Integer:
+        {
+            NSNumberFormatter *formatter = [[NSNumberFormatter alloc] init];
+            formatter.locale = [NSLocale currentLocale];
+            formatter.numberStyle = NSNumberFormatterDecimalStyle;
+            formatter.usesGroupingSeparator = YES;
+            formatter.roundingMode = NSNumberFormatterRoundFloor;
+            formatter.maximumFractionDigits = 0;
+            formatter.minimumFractionDigits = 0;
+            return [formatter stringFromNumber:@(data)];
+        }
+        case kSHLineGraphUnit_TimeInterval:
+        {
+            NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
+            formatter.locale = [NSLocale currentLocale];
+            formatter.dateStyle = NSDateFormatterLongStyle;
+            formatter.timeStyle = NSDateFormatterShortStyle;
+            return [formatter stringFromDate:[NSDate dateWithTimeIntervalSince1970:data]];
+        }
+        default:
+            return nil;
+    }
+}
+
 -(NSString *)textForXAxisUnit:(double)xAxisUnit
 {
     if ([_delegate respondsToSelector:@selector(lineGraph:customLabelForXAxisUnit:)]) {
@@ -461,6 +572,7 @@
     }
 }
 
+
 - (void)drawXLabels {
 
     NSArray *xAxisTicks = [self tickValuesForLabelMin:_XAxisMin max:_XAxisMax units:_xAxisUnit];
@@ -520,6 +632,30 @@
     }
 }
 
+-(void)drawTitle
+{
+    if (![_delegate respondsToSelector:@selector(titleForLineGraph:)] || ![[_delegate titleForLineGraph:self] length])
+        return;
+
+    NSString *titleString = [_delegate titleForLineGraph:self];
+    CGFloat centerX = (self.bounds.size.width - LEFT_MARGIN_TO_LEAVE)/2;
+    CGFloat centerY = TOP_MARGIN_TO_LEAVE/2;
+    NSMutableParagraphStyle *paragraphStyle = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
+    paragraphStyle.alignment = NSTextAlignmentCenter;
+    CGSize titleSize = [titleString sizeWithAttributes:
+                      @{NSFontAttributeName: _titleFont,
+                        NSParagraphStyleAttributeName: paragraphStyle}];
+    CGRect titleRect = CGRectMake(centerX - titleSize.width/2, centerY - titleSize.height/2, titleSize.width, titleSize.height);
+
+    UILabel *titleLabel = [[UILabel alloc] initWithFrame:titleRect];
+    titleLabel.backgroundColor = [UIColor clearColor];
+    titleLabel.font = _titleFont;
+    titleLabel.textColor = _titleColor;
+    titleLabel.textAlignment = NSTextAlignmentCenter;
+    titleLabel.text = titleString;
+    [self addSubview:titleLabel];
+}
+
 - (void)drawLines {
 
     NSArray *ticks = [self tickValuesForLabelMin:_YAxisMin max:_YAxisMax units:_yAxisUnit];
@@ -546,6 +682,93 @@
 
     linesLayer.path = linesPath;
     [self.layer addSublayer:linesLayer];
+}
+
+-(SHDataPoint *)closestDataPointToLocation:(CGPoint)location
+{
+    CGFloat xTarget = location.x;
+    CGFloat yTarget = location.y;
+    NSMutableArray *candidates = [[NSMutableArray alloc] init];
+    for (SHPlot *plot in _plots) {
+        for (SHDataPoint *dataPoint in plot.dataPoints) {
+            CGPoint dataPointLocation = [self dataPointToCoordinates:dataPoint];
+            CGFloat dataPointX = dataPointLocation.x;
+            CGFloat dataPointY = dataPointLocation.y;
+            NSUInteger i;
+            for (i=0; i<[candidates count]; i++) {
+                CGFloat compareX = [self dataPointToCoordinates:candidates[i]].x;
+                CGFloat compareY = [self dataPointToCoordinates:candidates[i]].y;
+
+                CGFloat compareDist = fabsf(xTarget - compareX) + fabsf(yTarget - compareY);
+                CGFloat dataPointDist = fabsf(xTarget - dataPointX) + fabsf(yTarget - dataPointY);
+                if (dataPointDist < compareDist) {
+                    break;
+                }
+            }
+            [candidates insertObject:dataPoint atIndex:i];
+        }
+    }
+    return [candidates firstObject];
+}
+
+-(void)showPopoverForDataPoint:(SHDataPoint *)dataPoint
+{
+    CGPoint point = [self dataPointToCoordinates:dataPoint];
+    UIColor *plotColor = dataPoint.plot.style.strokeColor;
+
+    NSMutableParagraphStyle *paragraphStyle = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
+    paragraphStyle.lineBreakMode = NSLineBreakByWordWrapping;
+    paragraphStyle.alignment = NSTextAlignmentLeft;
+    
+    NSDictionary *hoverTextXValueAttributes = @{
+                                       NSFontAttributeName: _hoverTextKeyFont,
+                                       NSForegroundColorAttributeName: _hoverTextColor,
+                                       NSKernAttributeName: [NSNull null],
+                                       NSParagraphStyleAttributeName: paragraphStyle};
+    NSDictionary *hoverTextPlotAttributes = @{
+                                     NSFontAttributeName: _hoverTextPlotFont,
+                                     NSForegroundColorAttributeName:
+                                         plotColor,
+                                     NSKernAttributeName: [NSNull null],
+                                     NSParagraphStyleAttributeName:
+                                         paragraphStyle};
+    NSDictionary *hoverTextSeparatorAttributes = @{
+                                                NSFontAttributeName: _hoverTextPlotFont,
+                                                NSForegroundColorAttributeName: _hoverTextColor,
+                                                NSKernAttributeName: [NSNull null],
+                                                NSParagraphStyleAttributeName: paragraphStyle};
+    NSDictionary *hoverTextYValueAttributes = @{
+                                                NSFontAttributeName: _hoverTextValueFont,
+                                                NSForegroundColorAttributeName: _hoverTextColor,
+                                                NSKernAttributeName: [NSNull null],
+                                                NSParagraphStyleAttributeName: paragraphStyle};
+
+    NSMutableAttributedString *attributedString = [[NSMutableAttributedString alloc] init];
+
+    NSAttributedString *xValueString = [[NSAttributedString alloc] initWithString:[self textForDouble:dataPoint.x withUnit:_xAxisUnit] attributes:hoverTextXValueAttributes];
+    [attributedString appendAttributedString:xValueString];
+
+    NSAttributedString *newLineString = [[NSAttributedString alloc] initWithString:@"\n"];
+    [attributedString appendAttributedString:newLineString];
+
+    if ([_delegate respondsToSelector:@selector(titleForPlotIndex:)]) {
+        NSAttributedString *plotTitleString = [[NSAttributedString alloc] initWithString:[_delegate titleForPlotIndex:dataPoint.plotIndex] attributes:hoverTextPlotAttributes];
+        [attributedString appendAttributedString:plotTitleString];
+
+        NSAttributedString *separatorString = [[NSAttributedString alloc] initWithString:@": " attributes:hoverTextSeparatorAttributes];
+        [attributedString appendAttributedString:separatorString];
+    }
+
+    NSAttributedString *yValueString = [[NSAttributedString alloc] initWithString:[self textForDouble:dataPoint.y withUnit:_yAxisUnit] attributes:hoverTextYValueAttributes];
+    [attributedString appendAttributedString:yValueString];
+
+    if (!_hoverLabel) {
+        _hoverLabel = [SHHoverLabel hoverLabelAtPoint:_touchLocation inView:self withAttributedText:attributedString];
+    }
+    else {
+        [_hoverLabel showAtPoint:point inView:self withAttributedText:attributedString];
+    }
+    _hoverLabel.borderColor = plotColor;
 }
 
 #pragma mark - UIButton event methods
