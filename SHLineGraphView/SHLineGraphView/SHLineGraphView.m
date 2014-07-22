@@ -28,16 +28,28 @@
 
 #define BOTTOM_MARGIN_TO_LEAVE 30.0
 #define TOP_MARGIN_TO_LEAVE 30.0
-#define INTERVAL_COUNT 9
-#define PLOT_WIDTH (self.bounds.size.width - _leftMarginToLeave)
+#define LEFT_MARGIN_TO_LEAVE 35.0
+#define INTERVAL_COUNT 6
+#define LEFT_PADDING 15.0
+#define RIGHT_PADDING 15.0
 
 #define kAssociatedPlotObject @"kAssociatedPlotObject"
 
+@interface SHLineGraphView ()
+
+@property (nonatomic, strong) NSMutableArray *plots;
+
+@property (nonatomic, strong) NSArray *xAxisLabels;
+
+@property (nonatomic, assign) double XAxisMin;
+@property (nonatomic, assign) double XAxisMax;
+@property (nonatomic, assign) double YAxisMin;
+@property (nonatomic, assign) double YAxisMax;
+
+@end
 
 @implementation SHLineGraphView
-{
-    float _leftMarginToLeave;
-}
+
 - (instancetype)init {
     if((self = [super init])) {
         [self loadDefaultTheme];
@@ -62,76 +74,111 @@
 - (void)loadDefaultTheme {
     _themeAttributes = @{
                          kXAxisLabelColorKey : [UIColor colorWithRed:0.48 green:0.48 blue:0.49 alpha:0.4],
-                         kXAxisLabelFontKey : [UIFont fontWithName:@"TrebuchetMS" size:10],
+                         kXAxisLabelFontKey : [UIFont fontWithName:@"HelveticaNeue-Light" size:10],
                          kYAxisLabelColorKey : [UIColor colorWithRed:0.48 green:0.48 blue:0.49 alpha:0.4],
-                         kYAxisLabelFontKey : [UIFont fontWithName:@"TrebuchetMS" size:10],
+                         kYAxisLabelFontKey : [UIFont fontWithName:@"HelveticaNeue-Light" size:10],
                          kYAxisLabelSideMarginsKey : @10,
                          kPlotBackgroundLineColorKey : [UIColor colorWithRed:0.48 green:0.48 blue:0.49 alpha:0.4],
                          kDotSizeKey : @10.0
                          };
 }
 
-- (void)addPlot:(SHPlot *)newPlot;
+- (void)reloadGraph
 {
-    if(nil == newPlot) {
+    if (!_delegate) {
+        [self calculateAxesRanges];
+        [self drawYLabels];
+        [self drawXLabels];
+        [self drawLines];
+        for(SHPlot *plot in _plots) {
+            [self drawPlot:plot];
+        }
         return;
     }
 
-    if(_plots == nil){
-        _plots = [NSMutableArray array];
+    NSInteger numPlots = [_delegate numberOfPlotsInLineGraph:self];
+    _plots = [[NSMutableArray alloc] initWithCapacity:numPlots];
+    for (int plotIndex=0; plotIndex<numPlots; plotIndex++) {
+        SHPlot *plot = [[SHPlot alloc] init];
+
+        if ([_delegate respondsToSelector:@selector(lineGraph:styleForPlotIndex:)]) {
+            SHLineGraphPlotStyle *plotStyle = [_delegate lineGraph:self styleForPlotIndex:plotIndex];
+            plot.plotThemeAttributes = @{
+                                         kPlotFillColorKey: plotStyle.fillColor,
+                                         kPlotStrokeWidthKey: @(plotStyle.lineSize),
+                                         kPlotStrokeColorKey: plotStyle.lineColor,
+                                         kPlotPointValueFontKey: [UIFont fontWithName:@"HelveticaNeue-Light" size:18]
+                                         };
+        }
+        NSMutableArray *dataPoints = [[NSMutableArray alloc] init];
+        NSInteger numPoints = [_delegate lineGraph:self numberOfPointsInPlotIndex:plotIndex];
+        for (int pointIndex=0; pointIndex<numPoints; pointIndex++) {
+
+            SHDataPoint *dataPoint = [_delegate lineGraph:self dataPointInPlotIndex:plotIndex ForPoint:pointIndex];
+            [dataPoints addObject:dataPoint];
+        }
+        plot.dataPoints = dataPoints;
+
+        [_plots addObject:plot];
     }
-    [_plots addObject:newPlot];
+
+    [self calculateAxesRanges];
+
+    [self drawYLabels];
+    [self drawXLabels];
+    [self drawLines];
+
+    for(SHPlot *plot in _plots) {
+        [self drawPlot:plot];
+    }
 }
 
-- (void)setupTheView
+-(void)calculateAxesRanges
 {
-    for(SHPlot *plot in _plots) {
-        [self drawPlotWithPlot:plot];
+    _YAxisMin = 0.0;
+    if (_plots[0] && ((SHPlot *)_plots[0]).dataPoints[0]) {
+        SHDataPoint *point = ((SHPlot *)_plots[0]).dataPoints[0];
+        _XAxisMin = point.x;
+        _XAxisMax = point.x;
+        _YAxisMax = point.y;
+    }
+    for (SHPlot *plot in _plots) {
+        for (SHDataPoint *point in plot.dataPoints) {
+            if (_XAxisMin > point.x)
+                _XAxisMin = point.x;
+            if (_XAxisMax < point.x)
+                _XAxisMax = point.x;
+            if (_YAxisMax < point.y)
+                _YAxisMax = point.y;
+        }
     }
 }
 
 #pragma mark - Actual Plot Drawing Methods
 
-- (void)drawPlotWithPlot:(SHPlot *)plot {
-    //draw y-axis labels. this has to be done first, so that we can determine the left margin to leave according to the
-    //y-axis lables.
-    [self drawYLabels:plot];
-
-    //draw x-labels
-    [self drawXLabels:plot];
-
-    //draw the grey lines
-    [self drawLines:plot];
-
-    /*
-     actual plot drawing
-     */
-    [self drawPlot:plot];
+-(CGPoint)dataPointToCoordinates:(SHDataPoint *)dataPoint
+{
+    return [self dataToCoordinates:dataPoint.x y:dataPoint.y];
 }
 
-- (int)getIndexForValue:(NSNumber *)value forPlot:(SHPlot *)plot {
-    for(int i=0; i< _xAxisValues.count; i++) {
-        NSDictionary *d = [_xAxisValues objectAtIndex:i];
-        __block BOOL foundValue = NO;
-        [d enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
-            NSNumber *k = (NSNumber *)key;
-            if([k doubleValue] == [value doubleValue]) {
-                foundValue = YES;
-                *stop = foundValue;
-            }
-        }];
-        if(foundValue){
-            return i;
-        }
-    }
-    return -1;
+-(CGPoint)dataToCoordinates:(double)x y:(double)y
+{
+    CGFloat xOffset = LEFT_PADDING + LEFT_MARGIN_TO_LEAVE;
+    CGFloat xScale = self.bounds.size.width - LEFT_PADDING - LEFT_MARGIN_TO_LEAVE - RIGHT_PADDING;
+    CGFloat yOffset = self.bounds.size.height - BOTTOM_MARGIN_TO_LEAVE;
+    CGFloat yScale = -(self.bounds.size.height - BOTTOM_MARGIN_TO_LEAVE - TOP_MARGIN_TO_LEAVE);
+
+    CGPoint point = CGPointMake(x * xScale / (_XAxisMax - _XAxisMin) + xOffset, y * yScale / (_YAxisMax - _YAxisMin) + yOffset);
+    return point;
 }
 
 - (void)drawPlot:(SHPlot *)plot {
 
+    if ([plot.dataPoints count] == 0)
+        return;
+
     NSDictionary *theme = plot.plotThemeAttributes;
 
-    //
     CAShapeLayer *backgroundLayer = [CAShapeLayer layer];
     backgroundLayer.frame = self.bounds;
     backgroundLayer.fillColor = ((UIColor *)theme[kPlotFillColorKey]).CGColor;
@@ -161,58 +208,35 @@
 
     CGMutablePathRef graphPath = CGPathCreateMutable();
 
-    double yRange = [_yAxisRange doubleValue]; // this value will be in dollars
-    double yIntervalValue = yRange / INTERVAL_COUNT;
+    CGPoint firstPoint = [self dataPointToCoordinates:plot.dataPoints[0]];
 
-    //logic to fill the graph path, ciricle path, background path.
-    [plot.plottingValues enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
-        NSDictionary *dic = (NSDictionary *)obj;
+    CGPathMoveToPoint(graphPath, NULL, firstPoint.x, firstPoint.y);
+    CGPathMoveToPoint(backgroundPath, NULL, LEFT_MARGIN_TO_LEAVE, firstPoint.y);
 
-        __block NSNumber *_key = nil;
-        __block NSNumber *_value = nil;
+    for (SHDataPoint *dataPoint in plot.dataPoints) {
 
-        [dic enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
-            _key = (NSNumber *)key;
-            _value = (NSNumber *)obj;
-        }];
-
-        int xIndex = [self getIndexForValue:_key forPlot:plot];
-
-        //x value
-        double height = self.bounds.size.height - BOTTOM_MARGIN_TO_LEAVE;
-        double y = height - ((height / ([_yAxisRange doubleValue] + yIntervalValue)) * [_value doubleValue]);
-        (plot.xPoints[xIndex]).x = ceil((plot.xPoints[xIndex]).x);
-        (plot.xPoints[xIndex]).y = ceil(y);
-    }];
-
-    //move to initial point for path and background.
-    CGPathMoveToPoint(graphPath, NULL, _leftMarginToLeave, plot.xPoints[0].y);
-    CGPathMoveToPoint(backgroundPath, NULL, _leftMarginToLeave, plot.xPoints[0].y);
-
-    int count = _xAxisValues.count;
-    for(int i=0; i< count; i++){
-        CGPoint point = plot.xPoints[i];
+        CGPoint point = [self dataPointToCoordinates:dataPoint];
         CGPathAddLineToPoint(graphPath, NULL, point.x, point.y);
         CGPathAddLineToPoint(backgroundPath, NULL, point.x, point.y);
+
         CGFloat dotsSize = [_themeAttributes[kDotSizeKey] floatValue];
-        CGPathAddEllipseInRect(circlePath, NULL, CGRectMake(point.x - dotsSize/2.0f, point.y - dotsSize/2.0f, dotsSize, dotsSize));
+        CGPathAddEllipseInRect(circlePath, NULL, CGRectMake(point.x - dotsSize/2, point.y-dotsSize/2, dotsSize, dotsSize));
     }
 
-    //move to initial point for path and background.
-    CGPathAddLineToPoint(graphPath, NULL, _leftMarginToLeave + PLOT_WIDTH, plot.xPoints[count -1].y);
-    CGPathAddLineToPoint(backgroundPath, NULL, _leftMarginToLeave + PLOT_WIDTH, plot.xPoints[count - 1].y);
+    CGPoint lastPoint = [self dataPointToCoordinates:[plot.dataPoints lastObject]];
+    CGPathAddLineToPoint(backgroundPath, NULL, self.bounds.size.width, lastPoint.y);
 
-    //additional points for background.
-    CGPathAddLineToPoint(backgroundPath, NULL, _leftMarginToLeave + PLOT_WIDTH, self.bounds.size.height - BOTTOM_MARGIN_TO_LEAVE);
-    CGPathAddLineToPoint(backgroundPath, NULL, _leftMarginToLeave, self.bounds.size.height - BOTTOM_MARGIN_TO_LEAVE);
+    CGPathAddLineToPoint(backgroundPath, NULL, self.bounds.size.width, self.bounds.size.height - BOTTOM_MARGIN_TO_LEAVE);
+    CGPathAddLineToPoint(backgroundPath, NULL, LEFT_MARGIN_TO_LEAVE, self.bounds.size.height - BOTTOM_MARGIN_TO_LEAVE);
+
     CGPathCloseSubpath(backgroundPath);
 
     backgroundLayer.path = backgroundPath;
     graphLayer.path = graphPath;
     circleLayer.path = circlePath;
 
-    //animation
     CABasicAnimation *animation = [CABasicAnimation animationWithKeyPath:@"strokeEnd"];
+
     animation.duration = 1;
     animation.fromValue = @(0.0);
     animation.toValue = @(1.0);
@@ -226,101 +250,278 @@
     [self.layer addSublayer:circleLayer];
     [self.layer addSublayer:backgroundLayer];
 
-	NSUInteger count2 = _xAxisValues.count;
-	for(int i=0; i< count2; i++){
-		CGPoint point = plot.xPoints[i];
-		UIButton *btn = [UIButton buttonWithType:UIButtonTypeCustom];
-
-		btn.backgroundColor = [UIColor clearColor];
-		btn.tag = i;
-		btn.frame = CGRectMake(point.x - 20, point.y - 20, 40, 40);
-		[btn addTarget:self action:@selector(clicked:) forControlEvents:UIControlEventTouchUpInside];
-		objc_setAssociatedObject(btn, kAssociatedPlotObject, plot, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-
-        [self addSubview:btn];
-	}
+//	NSUInteger count2 = _xAxisValues.count;
+//	for(int i=0; i< count2; i++){
+//		CGPoint point = plot.xPoints[i];
+//		UIButton *btn = [UIButton buttonWithType:UIButtonTypeCustom];
+//
+//		btn.backgroundColor = [UIColor clearColor];
+//		btn.tag = i;
+//		btn.frame = CGRectMake(point.x - 20, point.y - 20, 40, 40);
+//		[btn addTarget:self action:@selector(clicked:) forControlEvents:UIControlEventTouchUpInside];
+//		objc_setAssociatedObject(btn, kAssociatedPlotObject, plot, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+//
+//        [self addSubview:btn];
+//	}
 }
 
-- (void)drawXLabels:(SHPlot *)plot {
-    int xIntervalCount = _xAxisValues.count;
-    double xIntervalInPx = PLOT_WIDTH / _xAxisValues.count;
+-(NSArray *)tickValuesForLabelMin:(double)min max:(double)max units:(SHLineGraphUnit)unit
+{
+    NSMutableArray *ticks = [[NSMutableArray alloc] init];
+    switch (unit) {
+        case kSHLineGraphUnit_Decimal:
+        {
+            double delta = (max - min) / INTERVAL_COUNT;
+            for (double val = min; val < max; val += delta) {
+                [ticks addObject:@(val)];
+            }
+            [ticks addObject:@(max)];
+            break;
+        }
+        case kSHLineGraphUnit_Integer:
+        {
+            long longMin = (long)min;
+            long longMax = (long)max;
+            long interval = (longMax - longMin) / INTERVAL_COUNT;
 
-    //initialize actual x points values where the circle will be
-    plot.xPoints = calloc(sizeof(CGPoint), xIntervalCount);
+            long prettyInterval = [self deltaForIntegerRange:interval];
+            long tick = 0;
+            while (tick < longMax) {
+                if (tick >= longMin) {
+                    [ticks addObject:@(tick)];
+                }
+                tick += prettyInterval;
+            }
+            [ticks addObject:@(tick)];
+            break;
+        }
+        case kSHLineGraphUnit_TimeInterval:
+        {
+            NSTimeInterval absoluteRange = max - min;
+            NSDate *minAbsoluteDate = [NSDate dateWithTimeIntervalSince1970:min];
+            NSDate *maxAbsoluteDate = [NSDate dateWithTimeIntervalSince1970:max];
 
-    for(int i=0; i < xIntervalCount; i++){
-        CGPoint currentLabelPoint = CGPointMake((xIntervalInPx * i) + _leftMarginToLeave, self.bounds.size.height - BOTTOM_MARGIN_TO_LEAVE);
-        CGRect xLabelFrame = CGRectMake(currentLabelPoint.x , currentLabelPoint.y, xIntervalInPx, BOTTOM_MARGIN_TO_LEAVE);
+            NSTimeInterval absoluteInterval = absoluteRange / INTERVAL_COUNT;
 
-        plot.xPoints[i] = CGPointMake((int) xLabelFrame.origin.x + (xLabelFrame.size.width /2) , (int) 0);
+            NSCalendar *calendar = [NSCalendar currentCalendar];
+            NSDate *date = [calendar dateFromComponents:[calendar components:NSMonthCalendarUnit fromDate:minAbsoluteDate]];
 
-        UILabel *xAxisLabel = [[UILabel alloc] initWithFrame:xLabelFrame];
+            NSDateComponents *deltaDateComponents = [self deltaDateComponentsForTimeInterval:absoluteInterval fromDate:date];
+
+            while ([maxAbsoluteDate timeIntervalSinceDate:date] >= 0.0) {
+                if ([date timeIntervalSinceDate:minAbsoluteDate] >= 0.0) {
+                    [ticks addObject:@([date timeIntervalSince1970])];
+                }
+                date = [calendar dateByAddingComponents:deltaDateComponents toDate:date options:0];
+            }
+            [ticks addObject:@([date timeIntervalSince1970])];
+            break;
+        }
+        default:
+            break;
+    }
+    return ticks;
+}
+
+-(long)deltaForIntegerRange:(long)integerRange
+{
+    NSArray *deltaArray = @[@(1), @(5), @(10), @(25), @(50),
+                            @(100), @(250), @(500), @(1000),
+                            @(2500),       @(5000),      @(10000),
+                            @(25000L),      @(50000L),     @(100000L),
+                            @(250000L),     @(500000L),    @(1000000L),
+                            @(2500000L),    @(5000000L),   @(10000000L),
+                            @(25000000L),   @(50000000L),  @(100000000L)];
+    for (NSNumber *number in [deltaArray reverseObjectEnumerator]) {
+        if ([number longValue] < integerRange) {
+            return [number longValue];
+        }
+    }
+    return [[deltaArray firstObject] longValue];
+}
+
+-(NSDateComponents *)deltaDateComponentsForTimeInterval:(NSTimeInterval)timeInterval fromDate:(NSDate *)fromDate
+{
+    NSDateComponents *oneHourDelta = [[NSDateComponents alloc] init];
+    oneHourDelta.hour = 1;
+    NSDateComponents *threeHourDelta = [[NSDateComponents alloc] init];
+    threeHourDelta.hour = 3;
+    NSDateComponents *sixHourDelta = [[NSDateComponents alloc] init];
+    sixHourDelta.hour = 6;
+    NSDateComponents *twelveHourDelta = [[NSDateComponents alloc] init];
+    twelveHourDelta.hour = 12;
+    NSDateComponents *oneDayDelta = [[NSDateComponents alloc] init];
+    oneDayDelta.day = 1;
+    NSDateComponents *twoDayDelta = [[NSDateComponents alloc] init];
+    twoDayDelta.day = 2;
+    NSDateComponents *oneWeekDelta = [[NSDateComponents alloc] init];
+    oneWeekDelta.week = 1;
+    NSDateComponents *oneMonthDelta = [[NSDateComponents alloc] init];
+    oneMonthDelta.month = 1;
+
+    NSArray *componentArray = @[oneHourDelta, threeHourDelta, sixHourDelta,
+                                twelveHourDelta, oneDayDelta, twoDayDelta,
+                                oneWeekDelta, oneMonthDelta];
+    NSCalendar *calendar = [NSCalendar currentCalendar];
+
+    for (NSDateComponents *component in [componentArray reverseObjectEnumerator]) {
+        NSDate *toDate = [calendar dateByAddingComponents:component toDate:fromDate options:0];
+        NSTimeInterval deltaInterval = [toDate timeIntervalSinceDate:fromDate];
+        if (deltaInterval < timeInterval)
+            return component;
+    }
+    return oneHourDelta;
+}
+
+-(NSString *)textForXAxisUnit:(double)xAxisUnit
+{
+    if ([_delegate respondsToSelector:@selector(lineGraph:customLabelForXAxisUnit:)]) {
+        return [_delegate lineGraph:self customLabelForXAxisUnit:xAxisUnit];
+    }
+    switch (_xAxisUnit) {
+        case kSHLineGraphUnit_Decimal:
+        {
+            if (_XAxisMax > 10000) {
+                return [NSString stringWithFormat:@"%2.0fk", xAxisUnit/1000];
+            }
+            if (_XAxisMax > 5000) {
+                return [NSString stringWithFormat:@"%2.1fk", xAxisUnit/1000];
+            }
+            return [NSString stringWithFormat:@"%2.1f", xAxisUnit];
+        }
+        case kSHLineGraphUnit_Integer:
+        {
+            if (_XAxisMax > 10000) {
+                return [NSString stringWithFormat:@"%2.0fk", xAxisUnit/1000];
+            }
+            if (_XAxisMax > 5000) {
+                return [NSString stringWithFormat:@"%2.1fk", xAxisUnit/1000];
+            }
+            return [NSString stringWithFormat:@"%2.0f", xAxisUnit];
+            break;
+        }
+        case kSHLineGraphUnit_TimeInterval:
+        {
+            NSDate *date = [NSDate dateWithTimeIntervalSince1970:xAxisUnit];
+            NSCalendar *calendar = [NSCalendar currentCalendar];
+            NSDateComponents *components = [calendar components:NSYearCalendarUnit | NSMonthCalendarUnit | NSDayCalendarUnit | NSHourCalendarUnit fromDate:date];
+            if (components.hour) {
+                return [NSDateFormatter dateFormatFromTemplate:@"hh:mm" options:0 locale:[NSLocale currentLocale]];
+            }
+            else {
+                return [NSDateFormatter dateFormatFromTemplate:@"MMM dd" options:0 locale:[NSLocale currentLocale]];
+            }
+        }
+        default:
+            return nil;
+    }
+}
+
+-(NSString *)textForYAxisUnit:(double)yAxisUnit
+{
+    if ([_delegate respondsToSelector:@selector(lineGraph:customLabelForYAxisUnit:)]) {
+        return [_delegate lineGraph:self customLabelForXAxisUnit:yAxisUnit];
+    }
+    switch (_yAxisUnit) {
+        case kSHLineGraphUnit_Decimal:
+        {
+            if (_YAxisMax > 100000) {
+                return [NSString stringWithFormat:@"%2.0fk", yAxisUnit/1000];
+            }
+            if (_YAxisMax > 5000) {
+                return [NSString stringWithFormat:@"%2.1fk", yAxisUnit/1000];
+            }
+            return [NSString stringWithFormat:@"%2.1f", yAxisUnit];
+        }
+        case kSHLineGraphUnit_Integer:
+        {
+            if (_YAxisMax > 100000) {
+                return [NSString stringWithFormat:@"%2.0fk", yAxisUnit/1000];
+            }
+            if (_YAxisMax > 5000) {
+                return [NSString stringWithFormat:@"%2.1fk", yAxisUnit/1000];
+            }
+            return [NSString stringWithFormat:@"%2.0f", yAxisUnit];
+        }
+        case kSHLineGraphUnit_TimeInterval:
+        {
+            NSDate *date = [NSDate dateWithTimeIntervalSince1970:yAxisUnit];
+            NSCalendar *calendar = [NSCalendar currentCalendar];
+            NSDateComponents *components = [calendar components:NSYearCalendarUnit | NSMonthCalendarUnit | NSDayCalendarUnit | NSHourCalendarUnit fromDate:date];
+            if (components.hour) {
+                return [NSDateFormatter dateFormatFromTemplate:@"hh:mm" options:0 locale:[NSLocale currentLocale]];
+            }
+            else {
+                return [NSDateFormatter dateFormatFromTemplate:@"MMM dd" options:0 locale:[NSLocale currentLocale]];
+            }
+        }
+        default:
+            return nil;
+    }
+}
+
+- (void)drawXLabels {
+
+    NSArray *xAxisTicks = [self tickValuesForLabelMin:_XAxisMin max:_XAxisMax units:_xAxisUnit];
+
+    for (NSNumber *tickNumber in xAxisTicks) {
+        double tick = [tickNumber doubleValue];
+
+        CGFloat xCenter = [self dataToCoordinates:tick y:0.0].x;
+        CGFloat yPos = self.bounds.size.height - BOTTOM_MARGIN_TO_LEAVE+5;
+        NSString *labelString = [self textForXAxisUnit:tick];
+        NSMutableParagraphStyle *paragraphStyle = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
+        paragraphStyle.alignment = NSTextAlignmentCenter;
+        paragraphStyle.lineBreakMode = NSLineBreakByClipping;
+        CGSize labelSize = [labelString sizeWithAttributes:
+                            @{NSFontAttributeName: _themeAttributes[kXAxisLabelFontKey],
+                              NSParagraphStyleAttributeName: paragraphStyle}];
+        CGRect labelRect = CGRectMake(xCenter - labelSize.width/2, yPos, labelSize.width, labelSize.height);
+
+        UILabel *xAxisLabel = [[UILabel alloc] initWithFrame:labelRect];
         xAxisLabel.backgroundColor = [UIColor clearColor];
         xAxisLabel.font = (UIFont *)_themeAttributes[kXAxisLabelFontKey];
-
         xAxisLabel.textColor = (UIColor *)_themeAttributes[kXAxisLabelColorKey];
         xAxisLabel.textAlignment = NSTextAlignmentCenter;
-
-        NSDictionary *dic = [_xAxisValues objectAtIndex:i];
-        __block NSString *xLabel = nil;
-        [dic enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
-            xLabel = (NSString *)obj;
-        }];
-
-        xAxisLabel.text = [NSString stringWithFormat:@"%@", xLabel];
+        xAxisLabel.lineBreakMode = NSLineBreakByClipping;
+        xAxisLabel.text = labelString;
         [self addSubview:xAxisLabel];
     }
 }
 
-- (void)drawYLabels:(SHPlot *)plot {
-    double yRange = [_yAxisRange doubleValue]; // this value will be in dollars
-    double yIntervalValue = yRange / INTERVAL_COUNT;
-    double intervalInPx = (self.bounds.size.height - BOTTOM_MARGIN_TO_LEAVE ) / (INTERVAL_COUNT +1);
+- (void)drawYLabels {
 
-    NSMutableArray *labelArray = [NSMutableArray array];
-    float maxWidth = 0;
+    NSArray *yAxisTicks = [self tickValuesForLabelMin:_YAxisMin max:_YAxisMax units:_yAxisUnit];
 
-    for(int i= INTERVAL_COUNT + 1; i >= 0; i--){
-        CGPoint currentLinePoint = CGPointMake(_leftMarginToLeave, i * intervalInPx);
-        CGRect lableFrame = CGRectMake(0, currentLinePoint.y - (intervalInPx / 2), 100, intervalInPx);
+    for (NSNumber *tickNumber in yAxisTicks) {
+        double tick = [tickNumber doubleValue];
 
-        if(i != 0) {
-            UILabel *yAxisLabel = [[UILabel alloc] initWithFrame:lableFrame];
-            yAxisLabel.backgroundColor = [UIColor clearColor];
-            yAxisLabel.font = (UIFont *)_themeAttributes[kYAxisLabelFontKey];
-            yAxisLabel.textColor = (UIColor *)_themeAttributes[kYAxisLabelColorKey];
-            yAxisLabel.textAlignment = NSTextAlignmentCenter;
-            float val = (yIntervalValue * (10 - i));
-            if (val >= 1000) {
-                yAxisLabel.text = [NSString stringWithFormat:@"%3.1f%@%@", val/1000, @"K", _yAxisSuffix];
-            }
-            else {
-                yAxisLabel.text = [NSString stringWithFormat:@"%3.1f%@", val, _yAxisSuffix];
-            }
-            [yAxisLabel sizeToFit];
-            CGRect newLabelFrame = CGRectMake(0, currentLinePoint.y - (yAxisLabel.layer.frame.size.height / 2), yAxisLabel.frame.size.width, yAxisLabel.layer.frame.size.height);
-            yAxisLabel.frame = newLabelFrame;
+        CGFloat yCenter = [self dataToCoordinates:0.0 y:tick].y;
+        CGFloat xPos = 0.0;
+        CGFloat width = LEFT_MARGIN_TO_LEAVE-5;
+        NSString *labelString = [self textForYAxisUnit:tick];
+        NSMutableParagraphStyle *paragraphStyle = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
+        paragraphStyle.alignment = NSTextAlignmentRight;
+        paragraphStyle.lineBreakMode = NSLineBreakByClipping;
+        CGFloat height = [labelString sizeWithAttributes:
+                            @{NSFontAttributeName: _themeAttributes[kYAxisLabelFontKey],
+                              NSParagraphStyleAttributeName: paragraphStyle}].height;
+        CGRect labelRect = CGRectMake(xPos, yCenter - height/2, width, height);
 
-            if(newLabelFrame.size.width > maxWidth) {
-                maxWidth = newLabelFrame.size.width;
-            }
-
-            [labelArray addObject:yAxisLabel];
-            [self addSubview:yAxisLabel];
-        }
-    }
-
-    _leftMarginToLeave = maxWidth + [_themeAttributes[kYAxisLabelSideMarginsKey] doubleValue];
-
-    for( UILabel *l in labelArray) {
-        CGSize newSize = CGSizeMake(_leftMarginToLeave, l.frame.size.height);
-        CGRect newFrame = l.frame;
-        newFrame.size = newSize;
-        l.frame = newFrame;
+        UILabel *yAxisLabel = [[UILabel alloc] initWithFrame:labelRect];
+        yAxisLabel.backgroundColor = [UIColor clearColor];
+        yAxisLabel.font = (UIFont *)_themeAttributes[kYAxisLabelFontKey];
+        yAxisLabel.textColor = (UIColor *)_themeAttributes[kYAxisLabelColorKey];
+        yAxisLabel.textAlignment = NSTextAlignmentRight;
+        yAxisLabel.lineBreakMode = NSLineBreakByClipping;
+        yAxisLabel.text = labelString;
+        [self addSubview:yAxisLabel];
     }
 }
 
-- (void)drawLines:(SHPlot *)plot {
+- (void)drawLines {
+
+    NSArray *ticks = [self tickValuesForLabelMin:_YAxisMin max:_YAxisMax units:_yAxisUnit];
 
     CAShapeLayer *linesLayer = [CAShapeLayer layer];
     linesLayer.frame = self.bounds;
@@ -331,13 +532,15 @@
 
     CGMutablePathRef linesPath = CGPathCreateMutable();
 
-    double intervalInPx = (self.bounds.size.height - BOTTOM_MARGIN_TO_LEAVE) / (INTERVAL_COUNT + 1);
-    for(int i= INTERVAL_COUNT + 1; i > 0; i--){
+    for (NSNumber *tickNumber in ticks) {
 
-        CGPoint currentLinePoint = CGPointMake(_leftMarginToLeave, (i * intervalInPx));
+        double tick = [tickNumber doubleValue];
+        CGFloat y = [self dataToCoordinates:0.0 y:tick].y;
+
+        CGPoint currentLinePoint = CGPointMake(LEFT_MARGIN_TO_LEAVE, y);
 
         CGPathMoveToPoint(linesPath, NULL, currentLinePoint.x, currentLinePoint.y);
-        CGPathAddLineToPoint(linesPath, NULL, currentLinePoint.x + PLOT_WIDTH, currentLinePoint.y);
+        CGPathAddLineToPoint(linesPath, NULL, currentLinePoint.x + self.bounds.size.width - LEFT_MARGIN_TO_LEAVE, currentLinePoint.y);
     }
 
     linesLayer.path = linesPath;
@@ -346,38 +549,38 @@
 
 #pragma mark - UIButton event methods
 
-- (void)clicked:(id)sender
-{
-	@try {
-		UILabel *lbl = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 120, 30)];
-		lbl.backgroundColor = [UIColor clearColor];
-        UIButton *btn = (UIButton *)sender;
-		NSUInteger tag = btn.tag;
-
-        SHPlot *_plot = objc_getAssociatedObject(btn, kAssociatedPlotObject);
-		NSString *text = [_plot.plottingPointsLabels objectAtIndex:tag];
-
-		lbl.text = text;
-		lbl.textColor = [UIColor whiteColor];
-		lbl.textAlignment = NSTextAlignmentCenter;
-		lbl.font = (UIFont *)_plot.plotThemeAttributes[kPlotPointValueFontKey];
-		[lbl sizeToFit];
-		lbl.frame = CGRectMake(0, 0, lbl.frame.size.width + 5, lbl.frame.size.height);
-
-		CGPoint point =((UIButton *)sender).center;
-		point.y -= 15;
-
-		dispatch_async(dispatch_get_main_queue(), ^{
-			[PopoverView showPopoverAtPoint:point
-                                     inView:self
-                            withContentView:lbl
-                                   delegate:nil];
-		});
-	}
-	@catch (NSException *exception) {
-		NSLog(@"plotting label is not available for this point");
-	}
-}
+//- (void)clicked:(id)sender
+//{
+//	@try {
+//		UILabel *lbl = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 120, 30)];
+//		lbl.backgroundColor = [UIColor clearColor];
+//        UIButton *btn = (UIButton *)sender;
+//		NSUInteger tag = btn.tag;
+//
+//        SHPlot *_plot = objc_getAssociatedObject(btn, kAssociatedPlotObject);
+//		NSString *text = [_plot.plottingPointsLabels objectAtIndex:tag];
+//
+//		lbl.text = text;
+//		lbl.textColor = [UIColor whiteColor];
+//		lbl.textAlignment = NSTextAlignmentCenter;
+//		lbl.font = (UIFont *)_plot.plotThemeAttributes[kPlotPointValueFontKey];
+//		[lbl sizeToFit];
+//		lbl.frame = CGRectMake(0, 0, lbl.frame.size.width + 5, lbl.frame.size.height);
+//
+//		CGPoint point =((UIButton *)sender).center;
+//		point.y -= 15;
+//
+//		dispatch_async(dispatch_get_main_queue(), ^{
+//			[PopoverView showPopoverAtPoint:point
+//                                     inView:self
+//                            withContentView:lbl
+//                                   delegate:nil];
+//		});
+//	}
+//	@catch (NSException *exception) {
+//		NSLog(@"plotting label is not available for this point");
+//	}
+//}
 
 #pragma mark - Theme Key Extern Keys
 

@@ -22,6 +22,18 @@
 
 #import "SHPlot.h"
 
+@implementation SHDataPoint
+
+-(id)init
+{
+    if (self = [super init]) {
+
+    }
+    return self;
+}
+
+@end
+
 @implementation SHPlot
 
 - (instancetype)init {
@@ -32,13 +44,13 @@
 }
 
 - (void)loadDefaultTheme {
-    _plotThemeAttributes = @{
+    _plotThemeAttributes = [@{
                              kPlotFillColorKey : [UIColor colorWithRed:0.47 green:0.75 blue:0.78 alpha:0.5],
                              kPlotStrokeWidthKey : @2,
                              kPlotStrokeColorKey : [UIColor colorWithRed:0.18 green:0.36 blue:0.41 alpha:1],
                              kPlotPointFillColorKey : [UIColor colorWithRed:0.18 green:0.36 blue:0.41 alpha:1],
-                             kPlotPointValueFontKey : [UIFont fontWithName:@"TrebuchetMS" size:18]
-                             };
+                             kPlotPointValueFontKey : [UIFont fontWithName:@"HelveticaNeue-Light" size:18]
+                             } mutableCopy];
 }
 
 #pragma mark - Theme Key Extern Keys

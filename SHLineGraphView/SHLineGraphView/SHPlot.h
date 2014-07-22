@@ -22,26 +22,16 @@
 
 #import <Foundation/Foundation.h>
 
+@interface SHDataPoint : NSObject
+
+@property (nonatomic, assign) double x;
+@property (nonatomic, assign) double y;
+
+@end
+
 @interface SHPlot : NSObject
 
-/**
- *  Array of dictionaries, where the key is the same as the one which you specified in the `xAxisValues` in `SHLineGraphView`, 
- *  the value is the number which will determine the point location along the y-axis line. make sure the values are not 
- *  greater than the `yAxisRange` specified in `SHLineGraphView`.
- */
-@property (nonatomic, strong) NSArray *plottingValues;
-
-/**
- *  this is an optional array of `NSString` that specifies the labels to show on the particular points. when user clicks on
- *  a particular points, a popover view is shown and will show the particular label on for that point, that is specified 
- *  in this array.
- */
-@property (nonatomic, strong) NSArray *plottingPointsLabels;
-
-/**
- *  for internal use
- */
-@property (nonatomic) CGPoint *xPoints;
+@property (nonatomic, strong) NSArray *dataPoints;
 
 /**
  *  the dictionary which you can use to assing the theme attributes of the plot. if this property is nil, a default theme
