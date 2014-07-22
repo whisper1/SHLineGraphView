@@ -35,23 +35,6 @@
     _lineGraph.delegate = self;
     _lineGraph.bezierMode = YES;
 
-    //set the main graph area theme attributes
-
-    /**
-     *  theme attributes dictionary. you can specify graph theme releated attributes in this dictionary. if this property is
-     *  nil, then a default theme setting is applied to the graph.
-     */
-    NSDictionary *_themeAttributes = @{
-                                       kXAxisLabelColorKey : [UIColor colorWithRed:0.48 green:0.48 blue:0.49 alpha:1.0],
-                                       kXAxisLabelFontKey : [UIFont fontWithName:@"HelveticaNeue" size:10],
-                                       kYAxisLabelColorKey : [UIColor colorWithRed:0.48 green:0.48 blue:0.49 alpha:1.0],
-                                       kYAxisLabelFontKey : [UIFont fontWithName:@"HelveticaNeue" size:10],
-                                       kYAxisLabelSideMarginsKey : @20,
-                                       kPlotBackgroundLineColorKey : [UIColor colorWithRed:0.48 green:0.48 blue:0.49 alpha:0.4],
-                                       kDotSizeKey : @5
-                                       };
-    _lineGraph.themeAttributes = _themeAttributes;
-
     _lineGraph.xAxisUnit = kSHLineGraphUnit_Integer;
     _lineGraph.yAxisUnit = kSHLineGraphUnit_Integer;
 

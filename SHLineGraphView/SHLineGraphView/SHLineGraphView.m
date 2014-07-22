@@ -50,38 +50,31 @@
 
 @implementation SHLineGraphView
 
-- (instancetype)init {
-    if((self = [super init])) {
+#pragma mark - Initialization
+
+-(id)initWithCoder:(NSCoder *)aDecoder
+{
+    if (self = [super initWithCoder:aDecoder]) {
         [self loadDefaultTheme];
     }
     return self;
 }
 
-- (void)awakeFromNib
+-(id)initWithFrame:(CGRect)frame
 {
-    [self loadDefaultTheme];
-}
-
-- (id)initWithFrame:(CGRect)frame
-{
-    self = [super initWithFrame:frame];
-    if (self) {
+    if (self = [super initWithFrame:frame]) {
         [self loadDefaultTheme];
     }
     return self;
 }
 
 - (void)loadDefaultTheme {
-    _themeAttributes = @{
-                         kXAxisLabelColorKey : [UIColor colorWithRed:0.48 green:0.48 blue:0.49 alpha:0.4],
-                         kXAxisLabelFontKey : [UIFont fontWithName:@"HelveticaNeue-Light" size:10],
-                         kYAxisLabelColorKey : [UIColor colorWithRed:0.48 green:0.48 blue:0.49 alpha:0.4],
-                         kYAxisLabelFontKey : [UIFont fontWithName:@"HelveticaNeue-Light" size:10],
-                         kYAxisLabelSideMarginsKey : @10,
-                         kPlotBackgroundLineColorKey : [UIColor colorWithRed:0.48 green:0.48 blue:0.49 alpha:0.4],
-                         kDotSizeKey : @10.0
-                         };
+    _labelColor = [UIColor colorWithRed:0.48 green:0.48 blue:0.49 alpha:1.0];
+    _labelFont = [UIFont fontWithName:@"HelveticaNeue-Light" size:10];
+    _backgroundLineColor = [UIColor colorWithRed:0.48 green:0.48 blue:0.49 alpha:0.4];
 }
+
+#pragma mark - Public
 
 - (void)reloadGraph
 {
@@ -91,13 +84,11 @@
         SHPlot *plot = [[SHPlot alloc] init];
 
         if ([_delegate respondsToSelector:@selector(lineGraph:styleForPlotIndex:)]) {
-            SHLineGraphPlotStyle *plotStyle = [_delegate lineGraph:self styleForPlotIndex:plotIndex];
-            plot.plotThemeAttributes = @{
-                                         kPlotFillColorKey: plotStyle.fillColor,
-                                         kPlotStrokeWidthKey: @(plotStyle.lineSize),
-                                         kPlotStrokeColorKey: plotStyle.lineColor,
-                                         kPlotPointValueFontKey: [UIFont fontWithName:@"HelveticaNeue-Light" size:18]
-                                         };
+            plot.style = [_delegate lineGraph:self styleForPlotIndex:plotIndex];
+            if (!plot.style) {
+                plot.style = [[SHPlotStyle alloc] init];
+            }
+            [plot.style loadMissingDefaults];
         }
         NSMutableArray *dataPoints = [[NSMutableArray alloc] init];
         NSInteger numPoints = [_delegate lineGraph:self numberOfPointsInPlotIndex:plotIndex];
@@ -143,7 +134,7 @@
     }
 }
 
-#pragma mark - Actual Plot Drawing Methods
+#pragma mark - Private
 
 -(CGPoint)dataPointToCoordinates:(SHDataPoint *)dataPoint
 {
@@ -169,24 +160,22 @@
     if ([plot.dataPoints count] == 0)
         return;
 
-    NSDictionary *theme = plot.plotThemeAttributes;
-
     CAShapeLayer *backgroundLayer = [CAShapeLayer layer];
     backgroundLayer.frame = self.bounds;
-    backgroundLayer.fillColor = ((UIColor *)theme[kPlotFillColorKey]).CGColor;
+    backgroundLayer.fillColor = plot.style.fillColor.CGColor;
     backgroundLayer.backgroundColor = [UIColor clearColor].CGColor;
     [backgroundLayer setStrokeColor:[UIColor clearColor].CGColor];
-    [backgroundLayer setLineWidth:((NSNumber *)theme[kPlotStrokeWidthKey]).intValue];
+    [backgroundLayer setLineWidth:plot.style.lineSize];
 
     CGMutablePathRef backgroundPath = CGPathCreateMutable();
 
     //
     CAShapeLayer *circleLayer = [CAShapeLayer layer];
     circleLayer.frame = self.bounds;
-    circleLayer.fillColor = ((UIColor *)theme[kPlotPointFillColorKey]).CGColor;
+    circleLayer.fillColor = plot.style.fillColor.CGColor;
     circleLayer.backgroundColor = [UIColor clearColor].CGColor;
-    [circleLayer setStrokeColor:((UIColor *)theme[kPlotPointFillColorKey]).CGColor];
-    [circleLayer setLineWidth:((NSNumber *)theme[kPlotStrokeWidthKey]).intValue];
+    [circleLayer setStrokeColor:plot.style.strokeColor.CGColor];
+    [circleLayer setLineWidth:(int)plot.style.dotSize];
 
     CGMutablePathRef circlePath = CGPathCreateMutable();
 
@@ -195,8 +184,8 @@
     graphLayer.frame = self.bounds;
     graphLayer.fillColor = [UIColor clearColor].CGColor;
     graphLayer.backgroundColor = [UIColor clearColor].CGColor;
-    [graphLayer setStrokeColor:((UIColor *)theme[kPlotStrokeColorKey]).CGColor];
-    [graphLayer setLineWidth:((NSNumber *)theme[kPlotStrokeWidthKey]).intValue];
+    [graphLayer setStrokeColor:plot.style.strokeColor.CGColor];
+    [graphLayer setLineWidth:(int)plot.style.lineSize];
 
     CGMutablePathRef graphPath = CGPathCreateMutable();
 
@@ -228,7 +217,7 @@
             CGPathAddLineToPoint(backgroundPath, NULL, curPoint.x, curPoint.y);
         }
 
-        CGFloat dotsSize = [_themeAttributes[kDotSizeKey] floatValue];
+        CGFloat dotsSize = plot.style.dotSize;
         CGPathAddEllipseInRect(circlePath, NULL, CGRectMake(curPoint.x - dotsSize/2, curPoint.y-dotsSize/2, dotsSize, dotsSize));
 
         prevPrevPoint = prevPoint;
@@ -486,14 +475,14 @@
         paragraphStyle.alignment = NSTextAlignmentCenter;
         paragraphStyle.lineBreakMode = NSLineBreakByClipping;
         CGSize labelSize = [labelString sizeWithAttributes:
-                            @{NSFontAttributeName: _themeAttributes[kXAxisLabelFontKey],
+                            @{NSFontAttributeName: _labelFont,
                               NSParagraphStyleAttributeName: paragraphStyle}];
         CGRect labelRect = CGRectMake(xCenter - labelSize.width/2, yPos, labelSize.width, labelSize.height);
 
         UILabel *xAxisLabel = [[UILabel alloc] initWithFrame:labelRect];
         xAxisLabel.backgroundColor = [UIColor clearColor];
-        xAxisLabel.font = (UIFont *)_themeAttributes[kXAxisLabelFontKey];
-        xAxisLabel.textColor = (UIColor *)_themeAttributes[kXAxisLabelColorKey];
+        xAxisLabel.font = _labelFont;
+        xAxisLabel.textColor = _labelColor;
         xAxisLabel.textAlignment = NSTextAlignmentCenter;
         xAxisLabel.lineBreakMode = NSLineBreakByClipping;
         xAxisLabel.text = labelString;
@@ -516,14 +505,14 @@
         paragraphStyle.alignment = NSTextAlignmentRight;
         paragraphStyle.lineBreakMode = NSLineBreakByClipping;
         CGFloat height = [labelString sizeWithAttributes:
-                            @{NSFontAttributeName: _themeAttributes[kYAxisLabelFontKey],
+                            @{NSFontAttributeName: _labelFont,
                               NSParagraphStyleAttributeName: paragraphStyle}].height;
         CGRect labelRect = CGRectMake(xPos, yCenter - height/2, width, height);
 
         UILabel *yAxisLabel = [[UILabel alloc] initWithFrame:labelRect];
         yAxisLabel.backgroundColor = [UIColor clearColor];
-        yAxisLabel.font = (UIFont *)_themeAttributes[kYAxisLabelFontKey];
-        yAxisLabel.textColor = (UIColor *)_themeAttributes[kYAxisLabelColorKey];
+        yAxisLabel.font = _labelFont;
+        yAxisLabel.textColor = _labelColor;
         yAxisLabel.textAlignment = NSTextAlignmentRight;
         yAxisLabel.lineBreakMode = NSLineBreakByClipping;
         yAxisLabel.text = labelString;
@@ -539,7 +528,7 @@
     linesLayer.frame = self.bounds;
     linesLayer.fillColor = [UIColor clearColor].CGColor;
     linesLayer.backgroundColor = [UIColor clearColor].CGColor;
-    linesLayer.strokeColor = ((UIColor *)_themeAttributes[kPlotBackgroundLineColorKey]).CGColor;
+    linesLayer.strokeColor = _backgroundLineColor.CGColor;
     linesLayer.lineWidth = 1;
 
     CGMutablePathRef linesPath = CGPathCreateMutable();
@@ -593,15 +582,5 @@
 //		NSLog(@"plotting label is not available for this point");
 //	}
 //}
-
-#pragma mark - Theme Key Extern Keys
-
-NSString *const kXAxisLabelColorKey         = @"kXAxisLabelColorKey";
-NSString *const kXAxisLabelFontKey          = @"kXAxisLabelFontKey";
-NSString *const kYAxisLabelColorKey         = @"kYAxisLabelColorKey";
-NSString *const kYAxisLabelFontKey          = @"kYAxisLabelFontKey";
-NSString *const kYAxisLabelSideMarginsKey   = @"kYAxisLabelSideMarginsKey";
-NSString *const kPlotBackgroundLineColorKey = @"kPlotBackgroundLineColorKey";
-NSString *const kDotSizeKey                 = @"kDotSizeKey";
 
 @end

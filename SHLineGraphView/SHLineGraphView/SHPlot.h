@@ -29,42 +29,33 @@
 
 @end
 
+typedef NS_ENUM(NSInteger, SHLineGraphDotStyle) {
+    kSHLineGraphDotStyle_Circle,
+    kSHLineGraphDotStyle_Diamond,
+    kSHLineGraphDotStyle_Square
+};
+
+typedef NS_ENUM(NSInteger, SHLineGraphLineStyle) {
+    kSHLineGraphLineStyle_Solid,
+    kSHLineGraphLineStyle_Dashed
+};
+
+@interface SHPlotStyle : NSObject
+
+@property (nonatomic, strong) UIColor *fillColor;
+@property (nonatomic, strong) UIColor *strokeColor;
+@property (nonatomic, assign) SHLineGraphDotStyle dotStyle;
+@property (nonatomic, assign) SHLineGraphLineStyle lineStyle;
+@property (nonatomic, assign) CGFloat dotSize;
+@property (nonatomic, assign) CGFloat lineSize;
+
+-(void)loadMissingDefaults;
+
+@end
+
 @interface SHPlot : NSObject
 
 @property (nonatomic, strong) NSArray *dataPoints;
-
-/**
- *  the dictionary which you can use to assing the theme attributes of the plot. if this property is nil, a default theme
- *  is applied selected and the graph is plotted with those default settings.
- */
-@property (nonatomic, strong) NSDictionary *plotThemeAttributes;
-
-
-//following are the theme keys that you will be using to create the theme of the your grpah plot
-
-/**
- *  plot fill color key. use this to define the fill color of the plot (UIColor*)
- */
-UIKIT_EXTERN NSString *const kPlotFillColorKey;
-
-/**
- *  plot stroke width key. use this to define the width of the plotting stroke line (in pixels)
- */
-UIKIT_EXTERN NSString *const kPlotStrokeWidthKey;
-
-/**
- *  plot stroke color key. use this to define the stroke color of the plotting line (UIColor*)
- */
-UIKIT_EXTERN NSString *const kPlotStrokeColorKey;
-
-/**
- *  plot point fill color key. use this to define the fill color of the point in plot (UIColor*)
- */
-UIKIT_EXTERN NSString *const kPlotPointFillColorKey;
-
-/**
- *  plotting point value label font key. use this key to define the font of the plotting point label.
- */
-UIKIT_EXTERN NSString *const kPlotPointValueFontKey;
+@property (nonatomic, strong) SHPlotStyle *style;
 
 @end
