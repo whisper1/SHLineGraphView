@@ -33,6 +33,7 @@
     //initate the graph view
     SHLineGraphView *_lineGraph = [[SHLineGraphView alloc] initWithFrame:CGRectMake(0, 0, 568, 320)];
     _lineGraph.delegate = self;
+    _lineGraph.bezierMode = YES;
 
     //set the main graph area theme attributes
 

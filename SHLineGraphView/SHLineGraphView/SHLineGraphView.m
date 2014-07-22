@@ -85,17 +85,6 @@
 
 - (void)reloadGraph
 {
-    if (!_delegate) {
-        [self calculateAxesRanges];
-        [self drawYLabels];
-        [self drawXLabels];
-        [self drawLines];
-        for(SHPlot *plot in _plots) {
-            [self drawPlot:plot];
-        }
-        return;
-    }
-
     NSInteger numPlots = [_delegate numberOfPlotsInLineGraph:self];
     _plots = [[NSMutableArray alloc] initWithCapacity:numPlots];
     for (int plotIndex=0; plotIndex<numPlots; plotIndex++) {
@@ -136,7 +125,7 @@
 -(void)calculateAxesRanges
 {
     _YAxisMin = 0.0;
-    if (_plots[0] && ((SHPlot *)_plots[0]).dataPoints[0]) {
+    if ([_plots count] && [((SHPlot *)_plots[0]).dataPoints count] && ((SHPlot *)_plots[0]).dataPoints[0]) {
         SHDataPoint *point = ((SHPlot *)_plots[0]).dataPoints[0];
         _XAxisMin = point.x;
         _XAxisMax = point.x;
@@ -167,6 +156,9 @@
     CGFloat xScale = self.bounds.size.width - LEFT_PADDING - LEFT_MARGIN_TO_LEAVE - RIGHT_PADDING;
     CGFloat yOffset = self.bounds.size.height - BOTTOM_MARGIN_TO_LEAVE;
     CGFloat yScale = -(self.bounds.size.height - BOTTOM_MARGIN_TO_LEAVE - TOP_MARGIN_TO_LEAVE);
+
+    if (_XAxisMax == 0 || _YAxisMax == 0)
+        return CGPointMake(xOffset, yOffset);
 
     CGPoint point = CGPointMake(x * xScale / (_XAxisMax - _XAxisMin) + xOffset, y * yScale / (_YAxisMax - _YAxisMin) + yOffset);
     return point;
@@ -213,14 +205,34 @@
     CGPathMoveToPoint(graphPath, NULL, firstPoint.x, firstPoint.y);
     CGPathMoveToPoint(backgroundPath, NULL, LEFT_MARGIN_TO_LEAVE, firstPoint.y);
 
-    for (SHDataPoint *dataPoint in plot.dataPoints) {
+    CGPoint prevPrevPoint = firstPoint;
+    CGPoint prevPoint = firstPoint;
+    CGPoint nextPoint = firstPoint;
 
-        CGPoint point = [self dataPointToCoordinates:dataPoint];
-        CGPathAddLineToPoint(graphPath, NULL, point.x, point.y);
-        CGPathAddLineToPoint(backgroundPath, NULL, point.x, point.y);
+    for (int i=0; i<[plot.dataPoints count]; i++) {
+
+        SHDataPoint *dataPoint = plot.dataPoints[i];
+
+        CGPoint curPoint = [self dataPointToCoordinates:dataPoint];
+        nextPoint = (i+1 == [plot.dataPoints count])? curPoint : [self dataPointToCoordinates:plot.dataPoints[i+1]];
+
+        CGPoint controlPoint1 = CGPointMake(prevPoint.x + (curPoint.x - prevPoint.x)/3, prevPoint.y - (prevPoint.y - curPoint.y)/3 - (prevPrevPoint.y - prevPoint.y)*0.3);
+        CGPoint controlPoint2 = CGPointMake(prevPoint.x + 2*(curPoint.x - prevPoint.x)/3, (prevPoint.y - 2*(prevPoint.y - curPoint.y)/3) + (curPoint.y - nextPoint.y)*0.3);
+
+        if (_bezierMode && i != 0) {
+            CGPathAddCurveToPoint(graphPath, NULL, controlPoint1.x, controlPoint1.y, controlPoint2.x, controlPoint2.y, curPoint.x, curPoint.y);
+            CGPathAddCurveToPoint(backgroundPath, NULL, controlPoint1.x, controlPoint1.y, controlPoint2.x, controlPoint2.y, curPoint.x, curPoint.y);
+        }
+        else {
+            CGPathAddLineToPoint(graphPath, NULL, curPoint.x, curPoint.y);
+            CGPathAddLineToPoint(backgroundPath, NULL, curPoint.x, curPoint.y);
+        }
 
         CGFloat dotsSize = [_themeAttributes[kDotSizeKey] floatValue];
-        CGPathAddEllipseInRect(circlePath, NULL, CGRectMake(point.x - dotsSize/2, point.y-dotsSize/2, dotsSize, dotsSize));
+        CGPathAddEllipseInRect(circlePath, NULL, CGRectMake(curPoint.x - dotsSize/2, curPoint.y-dotsSize/2, dotsSize, dotsSize));
+
+        prevPrevPoint = prevPoint;
+        prevPoint = curPoint;
     }
 
     CGPoint lastPoint = [self dataPointToCoordinates:[plot.dataPoints lastObject]];

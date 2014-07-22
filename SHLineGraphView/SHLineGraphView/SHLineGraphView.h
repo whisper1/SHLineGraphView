@@ -87,6 +87,8 @@ typedef NS_ENUM(NSInteger, SHLineGraphLineStyle) {
 @property (nonatomic, assign) SHLineGraphUnit xAxisUnit;
 @property (nonatomic, assign) SHLineGraphUnit yAxisUnit;
 
+@property (nonatomic, assign) BOOL bezierMode;
+
 /**
  *  y-axis values are calculated according to the yAxisRange passed. so you do not have to pass the explicit labels for 
  *  y-axis, but if you want to put any suffix to the calculated y-values, you can mention it here (e.g. K, M, Kg ...)
