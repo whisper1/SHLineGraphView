@@ -203,7 +203,7 @@
     if (_XAxisMax == 0 || _YAxisMax == 0)
         return CGPointMake(xOffset, yOffset);
 
-    CGPoint point = CGPointMake(x * xScale / (_XAxisMax - _XAxisMin) + xOffset, y * yScale / (_YAxisMax - _YAxisMin) + yOffset);
+    CGPoint point = CGPointMake((x - _XAxisMin) * xScale / (_XAxisMax - _XAxisMin) + xOffset, (y - _YAxisMin) * yScale / (_YAxisMax - _YAxisMin) + yOffset);
     return point;
 }
 
@@ -374,11 +374,14 @@
             NSTimeInterval absoluteRange = max - min;
             NSDate *minAbsoluteDate = [NSDate dateWithTimeIntervalSince1970:min];
             NSDate *maxAbsoluteDate = [NSDate dateWithTimeIntervalSince1970:max];
-
             NSTimeInterval absoluteInterval = absoluteRange / INTERVAL_COUNT;
 
+            NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
+            formatter.dateStyle = NSDateFormatterLongStyle;
+            formatter.timeStyle = NSDateFormatterMediumStyle;
+
             NSCalendar *calendar = [NSCalendar currentCalendar];
-            NSDate *date = [calendar dateFromComponents:[calendar components:NSMonthCalendarUnit fromDate:minAbsoluteDate]];
+            NSDate *date = [calendar dateFromComponents:[calendar components:NSMonthCalendarUnit | NSYearCalendarUnit fromDate:minAbsoluteDate]];
 
             NSDateComponents *deltaDateComponents = [self deltaDateComponentsForTimeInterval:absoluteInterval fromDate:date];
 
@@ -432,10 +435,12 @@
     oneWeekDelta.week = 1;
     NSDateComponents *oneMonthDelta = [[NSDateComponents alloc] init];
     oneMonthDelta.month = 1;
+    NSDateComponents *oneYearDelta = [[NSDateComponents alloc] init];
+    oneYearDelta.year = 1;
 
     NSArray *componentArray = @[oneHourDelta, threeHourDelta, sixHourDelta,
                                 twelveHourDelta, oneDayDelta, twoDayDelta,
-                                oneWeekDelta, oneMonthDelta];
+                                oneWeekDelta, oneMonthDelta, oneYearDelta];
     NSCalendar *calendar = [NSCalendar currentCalendar];
 
     for (NSDateComponents *component in [componentArray reverseObjectEnumerator]) {
@@ -517,11 +522,17 @@
             NSDate *date = [NSDate dateWithTimeIntervalSince1970:xAxisUnit];
             NSCalendar *calendar = [NSCalendar currentCalendar];
             NSDateComponents *components = [calendar components:NSYearCalendarUnit | NSMonthCalendarUnit | NSDayCalendarUnit | NSHourCalendarUnit fromDate:date];
+            NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
+            formatter.locale = [NSLocale currentLocale];
             if (components.hour) {
-                return [NSDateFormatter dateFormatFromTemplate:@"hh:mm" options:0 locale:[NSLocale currentLocale]];
+                NSString *dateFormat = [NSDateFormatter dateFormatFromTemplate:@"hh:mm" options:0 locale:[NSLocale currentLocale]];
+                formatter.dateFormat = dateFormat;
+                return [formatter stringFromDate:date];
             }
             else {
-                return [NSDateFormatter dateFormatFromTemplate:@"MMM dd" options:0 locale:[NSLocale currentLocale]];
+                NSString *dateFormat = [NSDateFormatter dateFormatFromTemplate:@"MMM dd" options:0 locale:[NSLocale currentLocale]];
+                formatter.dateFormat = dateFormat;
+                return [formatter stringFromDate:date];
             }
         }
         default:
@@ -560,11 +571,17 @@
             NSDate *date = [NSDate dateWithTimeIntervalSince1970:yAxisUnit];
             NSCalendar *calendar = [NSCalendar currentCalendar];
             NSDateComponents *components = [calendar components:NSYearCalendarUnit | NSMonthCalendarUnit | NSDayCalendarUnit | NSHourCalendarUnit fromDate:date];
+            NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
+            formatter.locale = [NSLocale currentLocale];
             if (components.hour) {
-                return [NSDateFormatter dateFormatFromTemplate:@"hh:mm" options:0 locale:[NSLocale currentLocale]];
+                NSString *dateFormat = [NSDateFormatter dateFormatFromTemplate:@"hh:mm" options:0 locale:[NSLocale currentLocale]];
+                formatter.dateFormat = dateFormat;
+                return [formatter stringFromDate:date];
             }
             else {
-                return [NSDateFormatter dateFormatFromTemplate:@"MMM dd" options:0 locale:[NSLocale currentLocale]];
+                NSString *dateFormat = [NSDateFormatter dateFormatFromTemplate:@"MMM dd" options:0 locale:[NSLocale currentLocale]];
+                formatter.dateFormat = dateFormat;
+                return [formatter stringFromDate:date];
             }
         }
         default:
