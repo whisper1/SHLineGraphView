@@ -43,7 +43,7 @@ typedef NS_ENUM(NSInteger, SHLineGraphUnit) {
 @optional
 
 -(NSString *)titleForLineGraph:(SHLineGraphView *)lineGraph;
--(NSString *)titleForPlotIndex:(NSInteger)plotIndex;
+-(NSString *)lineGraph:(SHLineGraphView *)lineGraph titleForPlotIndex:(NSInteger)plotIndex;
 
 -(SHPlotStyle *)lineGraph:(SHLineGraphView *)lineGraph styleForPlotIndex:(NSInteger)plotIndex;
 

@@ -152,8 +152,8 @@
         [_plots addObject:plot];
     }
 
-    [[self subviews] makeObjectsPerformSelector:@selector(removeFromSuperview)];
-    [[self.layer sublayers] makeObjectsPerformSelector:@selector(removeFromSuperlayer)];
+    [[[self subviews] copy] makeObjectsPerformSelector:@selector(removeFromSuperview)];
+    [[[self.layer sublayers] copy] makeObjectsPerformSelector:@selector(removeFromSuperlayer)];
 
     [self calculateAxesRanges];
 
@@ -768,8 +768,8 @@
     NSAttributedString *newLineString = [[NSAttributedString alloc] initWithString:@"\n"];
     [attributedString appendAttributedString:newLineString];
 
-    if ([_delegate respondsToSelector:@selector(titleForPlotIndex:)]) {
-        NSAttributedString *plotTitleString = [[NSAttributedString alloc] initWithString:[_delegate titleForPlotIndex:dataPoint.plotIndex] attributes:hoverTextPlotAttributes];
+    if ([_delegate respondsToSelector:@selector(lineGraph:titleForPlotIndex:)]) {
+        NSAttributedString *plotTitleString = [[NSAttributedString alloc] initWithString:[_delegate lineGraph:self titleForPlotIndex:dataPoint.plotIndex] attributes:hoverTextPlotAttributes];
         [attributedString appendAttributedString:plotTitleString];
 
         NSAttributedString *separatorString = [[NSAttributedString alloc] initWithString:@": " attributes:hoverTextSeparatorAttributes];

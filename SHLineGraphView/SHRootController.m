@@ -95,7 +95,7 @@
     return [_plottingValues count];
 }
 
--(NSString *)titleForPlotIndex:(NSInteger)plotIndex
+-(NSString *)lineGraph:(SHLineGraphView *)lineGraph titleForPlotIndex:(NSInteger)plotIndex
 {
     return @"Segment";
 }
