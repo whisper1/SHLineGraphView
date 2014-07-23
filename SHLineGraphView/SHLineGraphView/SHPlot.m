@@ -22,30 +22,49 @@
 
 #import "SHPlot.h"
 
+@implementation SHDataPoint
+
+-(id)init
+{
+    if (self = [super init]) {
+
+    }
+    return self;
+}
+
+@end
+
+@implementation SHPlotStyle
+
+-(id)init
+{
+    if (self = [super init]) {
+        [self loadMissingDefaults];
+    }
+    return self;
+}
+
+-(void)loadMissingDefaults
+{
+    if (!_fillColor)
+        _fillColor = [UIColor colorWithRed:0.47 green:0.75 blue:0.78 alpha:0.5];
+    if (!_strokeColor)
+        _strokeColor = [UIColor colorWithRed:0.18 green:0.36 blue:0.41 alpha:1];
+    if (!_dotSize)
+        _dotSize = 5.0;
+    if (!_lineSize)
+        _lineSize = 2.0;
+}
+
+@end
+
 @implementation SHPlot
 
 - (instancetype)init {
-  if((self = [super init])) {
-    [self loadDefaultTheme];
-  }
-  return self;
+    if((self = [super init])) {
+        _style = [[SHPlotStyle alloc] init];
+    }
+    return self;
 }
 
-- (void)loadDefaultTheme {
-  _plotThemeAttributes = @{
-                           kPlotFillColorKey : [UIColor colorWithRed:0.47 green:0.75 blue:0.78 alpha:0.5],
-                           kPlotStrokeWidthKey : @2,
-                           kPlotStrokeColorKey : [UIColor colorWithRed:0.18 green:0.36 blue:0.41 alpha:1],
-                           kPlotPointFillColorKey : [UIColor colorWithRed:0.18 green:0.36 blue:0.41 alpha:1],
-                           kPlotPointValueFontKey : [UIFont fontWithName:@"TrebuchetMS" size:18]
-  };
-}
-
-#pragma mark - Theme Key Extern Keys
-
-NSString *const kPlotFillColorKey           = @"kPlotFillColorKey";
-NSString *const kPlotStrokeWidthKey         = @"kPlotStrokeWidthKey";
-NSString *const kPlotStrokeColorKey         = @"kPlotStrokeColorKey";
-NSString *const kPlotPointFillColorKey      = @"kPlotPointFillColorKey";
-NSString *const kPlotPointValueFontKey      = @"kPlotPointValueFontKey";
 @end

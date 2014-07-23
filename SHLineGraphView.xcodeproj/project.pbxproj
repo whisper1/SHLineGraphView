@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		63E7803A197F02E400FA8586 /* SHHoverLabel.m in Sources */ = {isa = PBXBuildFile; fileRef = 63E78039197F02E400FA8586 /* SHHoverLabel.m */; };
 		F259AE0018DE03060070E137 /* SHRootController.m in Sources */ = {isa = PBXBuildFile; fileRef = F259ADFF18DE03060070E137 /* SHRootController.m */; };
 		F266044118DDF5210084DCEF /* SHPlot.m in Sources */ = {isa = PBXBuildFile; fileRef = F266044018DDF5210084DCEF /* SHPlot.m */; };
 		F2F9135B18D3E8B8002D6919 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F2F9135A18D3E8B8002D6919 /* Foundation.framework */; };
@@ -22,7 +23,6 @@
 		F2F9137E18D3E8B8002D6919 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = F2F9137C18D3E8B8002D6919 /* InfoPlist.strings */; };
 		F2F9138018D3E8B8002D6919 /* SHLineGraphViewTests.m in Sources */ = {isa = PBXBuildFile; fileRef = F2F9137F18D3E8B8002D6919 /* SHLineGraphViewTests.m */; };
 		F2F9138C18D403CE002D6919 /* SHLineGraphView.m in Sources */ = {isa = PBXBuildFile; fileRef = F2F9138B18D403CE002D6919 /* SHLineGraphView.m */; };
-		F2F9139118D40467002D6919 /* PopoverView.m in Sources */ = {isa = PBXBuildFile; fileRef = F2F9138F18D40467002D6919 /* PopoverView.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -36,6 +36,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		63E78038197F02E400FA8586 /* SHHoverLabel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SHHoverLabel.h; sourceTree = "<group>"; };
+		63E78039197F02E400FA8586 /* SHHoverLabel.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SHHoverLabel.m; sourceTree = "<group>"; };
 		F259ADFE18DE03060070E137 /* SHRootController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SHRootController.h; sourceTree = "<group>"; };
 		F259ADFF18DE03060070E137 /* SHRootController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SHRootController.m; sourceTree = "<group>"; };
 		F266043F18DDF5210084DCEF /* SHPlot.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SHPlot.h; sourceTree = "<group>"; };
@@ -58,10 +60,6 @@
 		F2F9137F18D3E8B8002D6919 /* SHLineGraphViewTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SHLineGraphViewTests.m; sourceTree = "<group>"; };
 		F2F9138A18D403CE002D6919 /* SHLineGraphView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SHLineGraphView.h; sourceTree = "<group>"; };
 		F2F9138B18D403CE002D6919 /* SHLineGraphView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SHLineGraphView.m; sourceTree = "<group>"; };
-		F2F9138D18D40467002D6919 /* PopoverView_Configuration.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PopoverView_Configuration.h; sourceTree = "<group>"; };
-		F2F9138E18D40467002D6919 /* PopoverView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PopoverView.h; sourceTree = "<group>"; };
-		F2F9138F18D40467002D6919 /* PopoverView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PopoverView.m; sourceTree = "<group>"; };
-		F2F9139018D40467002D6919 /* PopoverViewCompatibility.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PopoverViewCompatibility.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -164,10 +162,8 @@
 		F2F9138918D403CE002D6919 /* SHLineGraphView */ = {
 			isa = PBXGroup;
 			children = (
-				F2F9138D18D40467002D6919 /* PopoverView_Configuration.h */,
-				F2F9138E18D40467002D6919 /* PopoverView.h */,
-				F2F9138F18D40467002D6919 /* PopoverView.m */,
-				F2F9139018D40467002D6919 /* PopoverViewCompatibility.h */,
+				63E78038197F02E400FA8586 /* SHHoverLabel.h */,
+				63E78039197F02E400FA8586 /* SHHoverLabel.m */,
 				F2F9138A18D403CE002D6919 /* SHLineGraphView.h */,
 				F2F9138B18D403CE002D6919 /* SHLineGraphView.m */,
 				F266043F18DDF5210084DCEF /* SHPlot.h */,
@@ -274,9 +270,9 @@
 			files = (
 				F266044118DDF5210084DCEF /* SHPlot.m in Sources */,
 				F2F9136718D3E8B8002D6919 /* main.m in Sources */,
+				63E7803A197F02E400FA8586 /* SHHoverLabel.m in Sources */,
 				F259AE0018DE03060070E137 /* SHRootController.m in Sources */,
 				F2F9136B18D3E8B8002D6919 /* SHAppDelegate.m in Sources */,
-				F2F9139118D40467002D6919 /* PopoverView.m in Sources */,
 				F2F9138C18D403CE002D6919 /* SHLineGraphView.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
