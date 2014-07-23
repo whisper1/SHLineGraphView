@@ -40,7 +40,7 @@
     _lineGraph.delegate = self;
     _lineGraph.bezierMode = YES;
 
-    _lineGraph.xAxisUnit = kSHLineGraphUnit_Integer;
+    _lineGraph.xAxisUnit = kSHLineGraphUnit_TimeInterval;
     _lineGraph.yAxisUnit = kSHLineGraphUnit_Integer;
 
     /**
@@ -86,11 +86,12 @@
 
 -(NSInteger)numberOfPlotsInLineGraph:(SHLineGraphView *)lineGraph
 {
-    return 2;
+    return 1;
 }
 
 -(NSInteger)lineGraph:(SHLineGraphView *)lineGraph numberOfPointsInPlotIndex:(NSInteger)plotIndex
 {
+    return 2;
     return [_plottingValues count];
 }
 
@@ -101,7 +102,16 @@
 
 -(double)lineGraph:(SHLineGraphView *)lineGraph XValueInPlotIndex:(NSInteger)plotIndex forPoint:(NSInteger)pointIndex
 {
-    return pointIndex + plotIndex;
+    if (pointIndex == 0) {
+        return [[[NSDate date] dateByAddingTimeInterval:-1 * 60 * 60 * 24] timeIntervalSince1970];
+    }
+    else {
+        return [[NSDate date] timeIntervalSince1970];
+    }
+//    NSDate *date = [NSDate date];
+//    NSTimeInterval interval = -1 * 60 * 60 * 24 * ([_plottingValues count]-pointIndex);
+//    return [[date dateByAddingTimeInterval:interval] timeIntervalSince1970];
+//    return pointIndex + plotIndex;
 }
 
 -(double)lineGraph:(SHLineGraphView *)lineGraph YValueInPlotIndex:(NSInteger)plotIndex forPoint:(NSInteger)pointIndex

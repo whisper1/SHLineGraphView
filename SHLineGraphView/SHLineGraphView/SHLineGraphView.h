@@ -60,7 +60,7 @@ typedef NS_ENUM(NSInteger, SHLineGraphUnit) {
 
 @interface SHLineGraphView : UIView
 
-@property (nonatomic, strong) id<SHLineGraphViewDelegate> delegate;
+@property (nonatomic, strong) IBOutlet id<SHLineGraphViewDelegate> delegate;
 
 @property (nonatomic, assign) SHLineGraphUnit xAxisUnit;
 @property (nonatomic, assign) SHLineGraphUnit yAxisUnit;
