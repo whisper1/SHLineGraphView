@@ -21,8 +21,7 @@
 // SOFTWARE.
 
 #import <Foundation/Foundation.h>
-
-@class SHPlot;
+#import "SHPlotStyle.h"
 
 @interface SHDataPoint : NSObject
 
@@ -30,30 +29,6 @@
 @property (nonatomic, assign) double y;
 @property (nonatomic, assign) NSInteger plotIndex;
 @property (nonatomic, assign) NSInteger pointIndex;
-
-@end
-
-typedef NS_ENUM(NSInteger, SHLineGraphDotStyle) {
-    kSHLineGraphDotStyle_Circle,
-    kSHLineGraphDotStyle_Diamond,
-    kSHLineGraphDotStyle_Square
-};
-
-typedef NS_ENUM(NSInteger, SHLineGraphLineStyle) {
-    kSHLineGraphLineStyle_Solid,
-    kSHLineGraphLineStyle_Dashed
-};
-
-@interface SHPlotStyle : NSObject
-
-@property (nonatomic, strong) UIColor *fillColor;
-@property (nonatomic, strong) UIColor *strokeColor;
-@property (nonatomic, assign) SHLineGraphDotStyle dotStyle;
-@property (nonatomic, assign) SHLineGraphLineStyle lineStyle;
-@property (nonatomic, assign) CGFloat dotSize;
-@property (nonatomic, assign) CGFloat lineSize;
-
--(void)loadMissingDefaults;
 
 @end
 

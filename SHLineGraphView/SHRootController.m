@@ -8,7 +8,7 @@
 
 #import "SHRootController.h"
 #import "SHLineGraphView.h"
-#import "SHPlot.h"
+#import "SHPlotStyle.h"
 
 @interface SHRootController ()<SHLineGraphViewDelegate>
 @property (nonatomic, strong) NSArray *xValues;
@@ -93,15 +93,6 @@
     return @"Line Graph Title";
 }
 
--(SHPlotStyle *)lineGraph:(SHLineGraphView *)lineGraph styleForPlotIndex:(NSInteger)plotIndex
-{
-    SHPlotStyle *style = [[SHPlotStyle alloc] init];
-//    style.fillColor = [UIColor clearColor];
-    style.dotSize = 4.0;
-    style.lineSize = 3.0;
-    return style;
-}
-
 -(NSInteger)numberOfPlotsInLineGraph:(SHLineGraphView *)lineGraph
 {
     return 2;
@@ -140,9 +131,14 @@
 //    return [[_plottingValues objectAtIndex:pointIndex] doubleValue] + plotIndex * 200;
 }
 
--(BOOL)lineGraph:(SHLineGraphView *)lineGraph hiddenForPlotIndex:(NSInteger)plotIndex
+//-(BOOL)lineGraph:(SHLineGraphView *)lineGraph hiddenForPlotIndex:(NSInteger)plotIndex
+//{
+//    return plotIndex == 0;
+//}
+
+-(SHPlotStyle *)lineGraph:(SHLineGraphView *)lineGraph styleForPlotIndex:(NSInteger)plotIndex
 {
-    return plotIndex == 0;
+    return [SHPlotStyle defaultStyleForIndex:plotIndex area:NO];
 }
 
 - (void)didReceiveMemoryWarning

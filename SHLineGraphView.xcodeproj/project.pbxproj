@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		63E7803A197F02E400FA8586 /* SHHoverLabel.m in Sources */ = {isa = PBXBuildFile; fileRef = 63E78039197F02E400FA8586 /* SHHoverLabel.m */; };
+		63E780471980CCBB00FA8586 /* UIColor+GraphKit.m in Sources */ = {isa = PBXBuildFile; fileRef = 63E780461980CCBB00FA8586 /* UIColor+GraphKit.m */; };
+		63E7804A1980CD1300FA8586 /* SHPlotStyle.m in Sources */ = {isa = PBXBuildFile; fileRef = 63E780491980CD1300FA8586 /* SHPlotStyle.m */; };
 		F259AE0018DE03060070E137 /* SHRootController.m in Sources */ = {isa = PBXBuildFile; fileRef = F259ADFF18DE03060070E137 /* SHRootController.m */; };
 		F266044118DDF5210084DCEF /* SHPlot.m in Sources */ = {isa = PBXBuildFile; fileRef = F266044018DDF5210084DCEF /* SHPlot.m */; };
 		F2F9135B18D3E8B8002D6919 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F2F9135A18D3E8B8002D6919 /* Foundation.framework */; };
@@ -38,6 +40,10 @@
 /* Begin PBXFileReference section */
 		63E78038197F02E400FA8586 /* SHHoverLabel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SHHoverLabel.h; sourceTree = "<group>"; };
 		63E78039197F02E400FA8586 /* SHHoverLabel.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SHHoverLabel.m; sourceTree = "<group>"; };
+		63E780451980CCBB00FA8586 /* UIColor+GraphKit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "UIColor+GraphKit.h"; sourceTree = "<group>"; };
+		63E780461980CCBB00FA8586 /* UIColor+GraphKit.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "UIColor+GraphKit.m"; sourceTree = "<group>"; };
+		63E780481980CD1300FA8586 /* SHPlotStyle.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SHPlotStyle.h; sourceTree = "<group>"; };
+		63E780491980CD1300FA8586 /* SHPlotStyle.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SHPlotStyle.m; sourceTree = "<group>"; };
 		F259ADFE18DE03060070E137 /* SHRootController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SHRootController.h; sourceTree = "<group>"; };
 		F259ADFF18DE03060070E137 /* SHRootController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SHRootController.m; sourceTree = "<group>"; };
 		F266043F18DDF5210084DCEF /* SHPlot.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SHPlot.h; sourceTree = "<group>"; };
@@ -168,6 +174,10 @@
 				F2F9138B18D403CE002D6919 /* SHLineGraphView.m */,
 				F266043F18DDF5210084DCEF /* SHPlot.h */,
 				F266044018DDF5210084DCEF /* SHPlot.m */,
+				63E780481980CD1300FA8586 /* SHPlotStyle.h */,
+				63E780491980CD1300FA8586 /* SHPlotStyle.m */,
+				63E780451980CCBB00FA8586 /* UIColor+GraphKit.h */,
+				63E780461980CCBB00FA8586 /* UIColor+GraphKit.m */,
 			);
 			path = SHLineGraphView;
 			sourceTree = "<group>";
@@ -271,9 +281,11 @@
 				F266044118DDF5210084DCEF /* SHPlot.m in Sources */,
 				F2F9136718D3E8B8002D6919 /* main.m in Sources */,
 				63E7803A197F02E400FA8586 /* SHHoverLabel.m in Sources */,
+				63E7804A1980CD1300FA8586 /* SHPlotStyle.m in Sources */,
 				F259AE0018DE03060070E137 /* SHRootController.m in Sources */,
 				F2F9136B18D3E8B8002D6919 /* SHAppDelegate.m in Sources */,
 				F2F9138C18D403CE002D6919 /* SHLineGraphView.m in Sources */,
+				63E780471980CCBB00FA8586 /* UIColor+GraphKit.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

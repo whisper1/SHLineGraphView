@@ -34,30 +34,6 @@
 
 @end
 
-@implementation SHPlotStyle
-
--(id)init
-{
-    if (self = [super init]) {
-        [self loadMissingDefaults];
-    }
-    return self;
-}
-
--(void)loadMissingDefaults
-{
-    if (!_fillColor)
-        _fillColor = [UIColor colorWithRed:0.47 green:0.75 blue:0.78 alpha:0.5];
-    if (!_strokeColor)
-        _strokeColor = [UIColor colorWithRed:0.18 green:0.36 blue:0.41 alpha:1];
-    if (!_dotSize)
-        _dotSize = 5.0;
-    if (!_lineSize)
-        _lineSize = 2.0;
-}
-
-@end
-
 @implementation SHPlot
 
 - (instancetype)init {
