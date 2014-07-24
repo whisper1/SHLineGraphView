@@ -8,7 +8,7 @@
 
 #import "SHHoverLabel.h"
 
-#define MARGIN 10.0
+#define MARGIN 30.0
 #define TEXT_PADDING 5.0
 #define ANIMATION_DURATION 0.15
 

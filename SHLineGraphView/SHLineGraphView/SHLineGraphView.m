@@ -81,9 +81,9 @@
     _backgroundLineColor = [UIColor colorWithRed:0.48 green:0.48 blue:0.49 alpha:0.4];
     _titleColor = [UIColor blackColor];
     _titleFont = [UIFont fontWithName:@"HelveticaNeue" size:16];
-    _hoverTextKeyFont = [UIFont fontWithName:@"HelveticaNeue" size:9];
-    _hoverTextPlotFont = [UIFont fontWithName:@"HelveticaNeue" size:11];
-    _hoverTextValueFont = [UIFont fontWithName:@"HelveticaNeue-Bold" size:11];
+    _hoverTextKeyFont = [UIFont fontWithName:@"HelveticaNeue" size:12];
+    _hoverTextPlotFont = [UIFont fontWithName:@"HelveticaNeue" size:14];
+    _hoverTextValueFont = [UIFont fontWithName:@"HelveticaNeue-Bold" size:14];
     _hoverTextColor = [UIColor blackColor];
 }
 
@@ -730,6 +730,7 @@
 {
     CGFloat xTarget = location.x;
     CGFloat yTarget = location.y;
+    CGFloat xMargin = 5.0f;
     NSMutableArray *candidates = [[NSMutableArray alloc] init];
     for (NSInteger plotIndex = 0; plotIndex < [_plots count]; plotIndex++) {
         SHPlot *plot = _plots[plotIndex];
@@ -738,23 +739,26 @@
             continue;
         }
         for (SHDataPoint *dataPoint in plot.dataPoints) {
-            CGPoint dataPointLocation = [self dataPointToCoordinates:dataPoint];
-            CGFloat dataPointX = dataPointLocation.x;
-            CGFloat dataPointY = dataPointLocation.y;
-            NSUInteger i;
-            for (i=0; i<[candidates count]; i++) {
-                CGFloat compareX = [self dataPointToCoordinates:candidates[i]].x;
-                CGFloat compareY = [self dataPointToCoordinates:candidates[i]].y;
-
-                CGFloat compareDist = fabsf(xTarget - compareX) + fabsf(yTarget - compareY);
-                CGFloat dataPointDist = fabsf(xTarget - dataPointX) + fabsf(yTarget - dataPointY);
-                if (dataPointDist < compareDist) {
-                    break;
-                }
-            }
-            [candidates insertObject:dataPoint atIndex:i];
+            [candidates addObject:dataPoint];
         }
     }
+    [candidates sortUsingComparator:^NSComparisonResult(id obj1, id obj2) {
+        CGPoint point1 = [self dataPointToCoordinates:obj1];
+        CGPoint point2 = [self dataPointToCoordinates:obj2];
+
+        CGFloat point1XDist = fabsf(xTarget - point1.x);
+        CGFloat point2XDist = fabsf(xTarget - point2.x);
+
+        CGFloat point1YDist = fabsf(yTarget - point1.y);
+        CGFloat point2YDist = fabsf(yTarget - point2.y);
+
+        if (fabsf(point1XDist - point2XDist) < xMargin) {
+            return [@(point1YDist) compare:@(point2YDist)];
+        }
+        else {
+            return [@(point1XDist) compare:@(point2XDist)];
+        }
+    }];
     return [candidates firstObject];
 }
 
