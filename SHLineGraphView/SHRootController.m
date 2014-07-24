@@ -136,11 +136,6 @@
 //    return plotIndex == 0;
 //}
 
--(SHPlotStyle *)lineGraph:(SHLineGraphView *)lineGraph styleForPlotIndex:(NSInteger)plotIndex
-{
-    return [SHPlotStyle defaultStyleForIndex:plotIndex area:NO];
-}
-
 - (void)didReceiveMemoryWarning
 {
     [super didReceiveMemoryWarning];

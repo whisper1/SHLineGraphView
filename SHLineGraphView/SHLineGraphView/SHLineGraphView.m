@@ -134,11 +134,11 @@
 
         if ([_delegate respondsToSelector:@selector(lineGraph:styleForPlotIndex:)]) {
             plot.style = [_delegate lineGraph:self styleForPlotIndex:plotIndex];
-            if (!plot.style) {
-                plot.style = [[SHPlotStyle alloc] init];
-            }
-            [plot.style loadMissingDefaults];
         }
+        if (!plot.style) {
+            plot.style = [SHPlotStyle defaultStyleForIndex:plotIndex area:NO];
+        }
+        
         NSMutableArray *dataPoints = [[NSMutableArray alloc] init];
         NSInteger numPoints = [_delegate lineGraph:self numberOfPointsInPlotIndex:plotIndex];
         for (int pointIndex=0; pointIndex<numPoints; pointIndex++) {

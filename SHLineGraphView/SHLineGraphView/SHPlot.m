@@ -38,7 +38,7 @@
 
 - (instancetype)init {
     if((self = [super init])) {
-        _style = [[SHPlotStyle alloc] init];
+
     }
     return self;
 }
