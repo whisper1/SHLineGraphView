@@ -30,6 +30,7 @@
 #define TOP_MARGIN_TO_LEAVE 30.0
 #define LEFT_MARGIN_TO_LEAVE 35.0
 #define INTERVAL_COUNT 6
+#define AXIS_INTERVAL 50
 #define LEFT_PADDING 15.0
 #define RIGHT_PADDING 15.0
 
@@ -47,6 +48,7 @@
 @property (nonatomic, assign) double YAxisMax;
 
 @property (nonatomic, assign) CGPoint touchLocation;
+@property (nonatomic, weak) SHDataPoint *touchDataPoint;
 @property (nonatomic, assign) BOOL touched;
 
 @property (nonatomic, strong) SHHoverLabel *hoverLabel;
@@ -93,13 +95,15 @@
         return;
     _touched = YES;
     _touchLocation = [((UITouch *)[touches anyObject]) locationInView:self];
-    [self reloadGraphWithAnimated:NO];
+    _touchDataPoint = [self closestDataPointToLocation:_touchLocation];
+    [self showPopoverForDataPoint:_touchDataPoint];
 }
 
 -(void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event
 {
     _touchLocation = [((UITouch *)[touches anyObject]) locationInView:self];
-    [self reloadGraphWithAnimated:NO];
+    _touchDataPoint = [self closestDataPointToLocation:_touchLocation];
+    [self showPopoverForDataPoint:_touchDataPoint];
 }
 
 -(void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
@@ -115,7 +119,8 @@
 -(void)touchesEndedOrCancelled:(NSSet *)touches withEvent:(UIEvent *)event
 {
     _touched = NO;
-    [self reloadGraphWithAnimated:NO];
+    [_hoverLabel removeFromSuperview];
+    _hoverLabel = nil;
 }
 
 #pragma mark - Public
@@ -141,7 +146,6 @@
             SHDataPoint *dataPoint = [[SHDataPoint alloc] init];
             dataPoint.x = [_delegate lineGraph:self XValueInPlotIndex:plotIndex forPoint:pointIndex];
             dataPoint.y = [_delegate lineGraph:self YValueInPlotIndex:plotIndex forPoint:pointIndex];
-            dataPoint.plot = plot;
             dataPoint.pointIndex = pointIndex;
             dataPoint.plotIndex = plotIndex;
 
@@ -162,24 +166,50 @@
     [self drawLines];
     [self drawTitle];
 
+    if (_touched)
+        _touchDataPoint = [self closestDataPointToLocation:_touchLocation];
+
     [self drawPlotsWithAnimated:animated];
+
+    if (_touchDataPoint)
+        [self showPopoverForDataPoint:_touchDataPoint];
 }
 
 -(void)calculateAxesRanges
 {
+    _XAxisMin = 0.0;
+    _XAxisMax = 0.0;
     _YAxisMin = 0.0;
-    if ([_plots count] && [((SHPlot *)_plots[0]).dataPoints count] && ((SHPlot *)_plots[0]).dataPoints[0]) {
-        SHDataPoint *point = ((SHPlot *)_plots[0]).dataPoints[0];
-        _XAxisMin = point.x;
-        _XAxisMax = point.x;
-        _YAxisMax = point.y;
+    _YAxisMax = 0.0;
+    for (NSInteger i=0; i<[_plots count]; i++) {
+        SHPlot *plot = _plots[i];
+        if ([_delegate respondsToSelector:@selector(lineGraph:hiddenForPlotIndex:)] &&
+            [_delegate lineGraph:self hiddenForPlotIndex:i]) {
+            continue;
+        }
+        SHDataPoint *point = [plot.dataPoints firstObject];
+        if (point) {
+            _XAxisMin = point.x;
+            _XAxisMax = point.x;
+            if (_yAxisUnit == kSHLineGraphUnit_TimeInterval)
+                _YAxisMin = point.y;
+            _YAxisMax = point.y;
+            break;
+        }
     }
-    for (SHPlot *plot in _plots) {
+    for (NSInteger i=0; i<[_plots count]; i++) {
+        SHPlot *plot = _plots[i];
+        if ([_delegate respondsToSelector:@selector(lineGraph:hiddenForPlotIndex:)] &&
+            [_delegate lineGraph:self hiddenForPlotIndex:i]) {
+            continue;
+        }
         for (SHDataPoint *point in plot.dataPoints) {
             if (_XAxisMin > point.x)
                 _XAxisMin = point.x;
             if (_XAxisMax < point.x)
                 _XAxisMax = point.x;
+            if (_YAxisMin > point.y)
+                _YAxisMin = point.y;
             if (_YAxisMax < point.y)
                 _YAxisMax = point.y;
         }
@@ -191,6 +221,22 @@
 -(CGPoint)dataPointToCoordinates:(SHDataPoint *)dataPoint
 {
     return [self dataToCoordinates:dataPoint.x y:dataPoint.y];
+}
+
+-(double)coordinateXToXValue:(CGFloat)x
+{
+    CGFloat xOffset = LEFT_PADDING + LEFT_MARGIN_TO_LEAVE;
+    CGFloat xScale = self.bounds.size.width - LEFT_PADDING - LEFT_MARGIN_TO_LEAVE - RIGHT_PADDING;
+
+    return (x - xOffset) * (_XAxisMax - _XAxisMin) / xScale + _XAxisMin;
+}
+
+-(double)coordinateYToYValue:(CGFloat)y
+{
+    CGFloat yOffset = self.bounds.size.height - BOTTOM_MARGIN_TO_LEAVE;
+    CGFloat yScale = -(self.bounds.size.height - BOTTOM_MARGIN_TO_LEAVE - TOP_MARGIN_TO_LEAVE);
+
+    return (y - yOffset) * (_YAxisMax - _YAxisMin) / yScale + _YAxisMin;
 }
 
 -(CGPoint)dataToCoordinates:(double)x y:(double)y
@@ -209,7 +255,12 @@
 
 -(void)drawPlotsWithAnimated:(BOOL)animated
 {
-    for (SHPlot *plot in _plots) {
+    for (NSInteger i=0; i<[_plots count]; i++) {
+        SHPlot *plot = _plots[i];
+        if ([_delegate respondsToSelector:@selector(lineGraph:hiddenForPlotIndex:)] &&
+            [_delegate lineGraph:self hiddenForPlotIndex:i]) {
+            continue;
+        }
         [self drawPlot:plot animated:animated];
     }
 }
@@ -218,11 +269,6 @@
 
     if ([plot.dataPoints count] == 0)
         return;
-
-    SHDataPoint *selectedDataPoint = nil;
-    if (_touched) {
-        selectedDataPoint = [self closestDataPointToLocation:_touchLocation];
-    }
 
     CAShapeLayer *backgroundLayer = [CAShapeLayer layer];
     backgroundLayer.frame = self.bounds;
@@ -282,9 +328,9 @@
         }
 
         CGFloat dotsSize = plot.style.dotSize;
-        if (dataPoint == selectedDataPoint) {
-            dotsSize = 10.0;
-        }
+//        if (dataPoint == _touchDataPoint) {
+//            dotsSize = 10.0;
+//        }
         CGPathAddEllipseInRect(circlePath, NULL, CGRectMake(curPoint.x - dotsSize/2, curPoint.y-dotsSize/2, dotsSize, dotsSize));
 
         prevPrevPoint = prevPoint;
@@ -319,24 +365,6 @@
     [self.layer addSublayer:graphLayer];
     [self.layer addSublayer:circleLayer];
     [self.layer addSublayer:backgroundLayer];
-
-    if (selectedDataPoint) {
-        [self showPopoverForDataPoint:selectedDataPoint];
-    }
-
-//	NSUInteger count2 = _xAxisValues.count;
-//	for(int i=0; i< count2; i++){
-//		CGPoint point = plot.xPoints[i];
-//		UIButton *btn = [UIButton buttonWithType:UIButtonTypeCustom];
-//
-//		btn.backgroundColor = [UIColor clearColor];
-//		btn.tag = i;
-//		btn.frame = CGRectMake(point.x - 20, point.y - 20, 40, 40);
-//		[btn addTarget:self action:@selector(clicked:) forControlEvents:UIControlEventTouchUpInside];
-//		objc_setAssociatedObject(btn, kAssociatedPlotObject, plot, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-//
-//        [self addSubview:btn];
-//	}
 }
 
 -(NSArray *)tickValuesForLabelMin:(double)min max:(double)max units:(SHLineGraphUnit)unit
@@ -376,10 +404,6 @@
             NSDate *maxAbsoluteDate = [NSDate dateWithTimeIntervalSince1970:max];
             NSTimeInterval absoluteInterval = absoluteRange / INTERVAL_COUNT;
 
-            NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
-            formatter.dateStyle = NSDateFormatterLongStyle;
-            formatter.timeStyle = NSDateFormatterMediumStyle;
-
             NSCalendar *calendar = [NSCalendar currentCalendar];
             NSDate *date = [calendar dateFromComponents:[calendar components:NSMonthCalendarUnit | NSYearCalendarUnit fromDate:minAbsoluteDate]];
 
@@ -391,7 +415,6 @@
                 }
                 date = [calendar dateByAddingComponents:deltaDateComponents toDate:date options:0];
             }
-            [ticks addObject:@([date timeIntervalSince1970])];
             break;
         }
         default:
@@ -481,6 +504,7 @@
         {
             NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
             formatter.locale = [NSLocale currentLocale];
+            formatter.timeZone = [[NSCalendar currentCalendar] timeZone];
             formatter.dateStyle = NSDateFormatterLongStyle;
             formatter.timeStyle = NSDateFormatterShortStyle;
             return [formatter stringFromDate:[NSDate dateWithTimeIntervalSince1970:data]];
@@ -525,13 +549,15 @@
             NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
             formatter.locale = [NSLocale currentLocale];
             if (components.hour) {
-                NSString *dateFormat = [NSDateFormatter dateFormatFromTemplate:@"hh:mm" options:0 locale:[NSLocale currentLocale]];
+                NSString *dateFormat = [NSDateFormatter dateFormatFromTemplate:@"k:mm" options:0 locale:[NSLocale currentLocale]];
                 formatter.dateFormat = dateFormat;
+                formatter.timeZone = [[NSCalendar currentCalendar] timeZone];
                 return [formatter stringFromDate:date];
             }
             else {
                 NSString *dateFormat = [NSDateFormatter dateFormatFromTemplate:@"MMM dd" options:0 locale:[NSLocale currentLocale]];
                 formatter.dateFormat = dateFormat;
+                formatter.timeZone = [[NSCalendar currentCalendar] timeZone];
                 return [formatter stringFromDate:date];
             }
         }
@@ -574,7 +600,7 @@
             NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
             formatter.locale = [NSLocale currentLocale];
             if (components.hour) {
-                NSString *dateFormat = [NSDateFormatter dateFormatFromTemplate:@"hh:mm" options:0 locale:[NSLocale currentLocale]];
+                NSString *dateFormat = [NSDateFormatter dateFormatFromTemplate:@"k:mm" options:0 locale:[NSLocale currentLocale]];
                 formatter.dateFormat = dateFormat;
                 return [formatter stringFromDate:date];
             }
@@ -706,7 +732,12 @@
     CGFloat xTarget = location.x;
     CGFloat yTarget = location.y;
     NSMutableArray *candidates = [[NSMutableArray alloc] init];
-    for (SHPlot *plot in _plots) {
+    for (NSInteger plotIndex = 0; plotIndex < [_plots count]; plotIndex++) {
+        SHPlot *plot = _plots[plotIndex];
+        if ([_delegate respondsToSelector:@selector(lineGraph:hiddenForPlotIndex:)] &&
+            [_delegate lineGraph:self hiddenForPlotIndex:plotIndex]) {
+            continue;
+        }
         for (SHDataPoint *dataPoint in plot.dataPoints) {
             CGPoint dataPointLocation = [self dataPointToCoordinates:dataPoint];
             CGFloat dataPointX = dataPointLocation.x;
@@ -731,7 +762,7 @@
 -(void)showPopoverForDataPoint:(SHDataPoint *)dataPoint
 {
     CGPoint point = [self dataPointToCoordinates:dataPoint];
-    UIColor *plotColor = dataPoint.plot.style.strokeColor;
+    UIColor *plotColor = ((SHPlot *)_plots[dataPoint.plotIndex]).style.strokeColor;
 
     NSMutableParagraphStyle *paragraphStyle = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
     paragraphStyle.lineBreakMode = NSLineBreakByWordWrapping;
@@ -780,7 +811,8 @@
     [attributedString appendAttributedString:yValueString];
 
     if (!_hoverLabel) {
-        _hoverLabel = [SHHoverLabel hoverLabelAtPoint:_touchLocation inView:self withAttributedText:attributedString];
+        _hoverLabel = [SHHoverLabel hoverLabelAtPoint:point inView:self withAttributedText:attributedString];
+        [self addSubview:_hoverLabel];
     }
     else {
         [_hoverLabel showAtPoint:point inView:self withAttributedText:attributedString];

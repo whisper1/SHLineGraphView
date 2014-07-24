@@ -56,6 +56,8 @@ typedef NS_ENUM(NSInteger, SHLineGraphUnit) {
 -(void)lineGraph:(SHLineGraphView *)lineGraph didStartTouchGraphWithClosestPoint:(NSInteger)pointIndex inPlotIndex:(NSInteger)plotIndex;
 -(void)lineGraph:(SHLineGraphView *)lineGraph didReleaseTouchWithClosestPoint:(NSInteger)pointIndex inPlotIndex:(NSInteger)plotIndex;
 
+-(BOOL)lineGraph:(SHLineGraphView *)lineGraph hiddenForPlotIndex:(NSInteger)plotIndex;
+
 @end
 
 @interface SHLineGraphView : UIView

@@ -28,7 +28,6 @@
 
 @property (nonatomic, assign) double x;
 @property (nonatomic, assign) double y;
-@property (nonatomic, weak) SHPlot *plot;
 @property (nonatomic, assign) NSInteger plotIndex;
 @property (nonatomic, assign) NSInteger pointIndex;
 

@@ -72,7 +72,11 @@
 
 +(SHHoverLabel *)hoverLabelAtPoint:(CGPoint)point inView:(UIView *)view withAttributedText:(NSAttributedString *)attributedText
 {
-    SHHoverLabel *hoverLabel = [[SHHoverLabel alloc] init];
+    CGSize textSize = [attributedText size];
+    CGSize size = CGSizeMake(textSize.width + TEXT_PADDING*2,
+                             textSize.height + TEXT_PADDING*2);
+    CGRect frame = [SHHoverLabel frameForPoint:point inView:view withSize:size];
+    SHHoverLabel *hoverLabel = [[SHHoverLabel alloc] initWithFrame:frame];
     [hoverLabel showAtPoint:point inView:view withAttributedText:attributedText];
     return hoverLabel;
 }
@@ -84,7 +88,7 @@
     CGSize textSize = [attributedText size];
     CGSize size = CGSizeMake(textSize.width + TEXT_PADDING*2,
                              textSize.height + TEXT_PADDING*2);
-    CGRect frame = [self frameForPoint:point inView:view withSize:size];
+    CGRect frame = [SHHoverLabel frameForPoint:point inView:view withSize:size];
 
     self.attributedText = attributedText;
     self.lineBreakMode = NSLineBreakByWordWrapping;
@@ -93,12 +97,10 @@
     [UIView animateWithDuration:ANIMATION_DURATION animations:^{
         self.frame = frame;
     }];
-    [view addSubview:self];
-    [view sendSubviewToBack:self];
     self.layer.zPosition = 10;
 }
 
--(CGRect)frameForPoint:(CGPoint)point inView:(UIView *)view withSize:(CGSize)size
++(CGRect)frameForPoint:(CGPoint)point inView:(UIView *)view withSize:(CGSize)size
 {
     //default origin: left, yCenter
     CGPoint origin = CGPointMake(point.x - size.width - MARGIN,
