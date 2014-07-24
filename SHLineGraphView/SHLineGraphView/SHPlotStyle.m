@@ -39,7 +39,7 @@
                           [UIColor gk_asbestosColor]];
     });
     UIColor *strokeColor = defaultColors[index % [defaultColors count]];
-    UIColor *fillColor = [strokeColor colorWithAlphaComponent:(area)? 5.0 : 0.0];
+    UIColor *fillColor = [strokeColor colorWithAlphaComponent:(area)? 0.5 : 0.0];
     SHLineGraphDotStyle dotStyle = index % SHLineGraphDotStyleCount;
     SHLineGraphLineStyle lineStyle = (index / [defaultColors count]) % SHLineGraphLineStyleCount;
 

@@ -127,7 +127,7 @@
 
 -(double)lineGraph:(SHLineGraphView *)lineGraph YValueInPlotIndex:(NSInteger)plotIndex forPoint:(NSInteger)pointIndex
 {
-    return [_yValues[pointIndex] doubleValue] + 1000 * plotIndex;
+    return [_yValues[pointIndex] doubleValue] - 1000 * plotIndex;
 //    return [[_plottingValues objectAtIndex:pointIndex] doubleValue] + plotIndex * 200;
 }
 

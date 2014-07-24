@@ -136,7 +136,7 @@
             plot.style = [_delegate lineGraph:self styleForPlotIndex:plotIndex];
         }
         if (!plot.style) {
-            plot.style = [SHPlotStyle defaultStyleForIndex:plotIndex area:NO];
+            plot.style = [SHPlotStyle defaultStyleForIndex:plotIndex area:YES];
         }
         
         NSMutableArray *dataPoints = [[NSMutableArray alloc] init];
@@ -276,7 +276,6 @@
     backgroundLayer.backgroundColor = [UIColor clearColor].CGColor;
     [backgroundLayer setStrokeColor:[UIColor clearColor].CGColor];
     [backgroundLayer setLineWidth:plot.style.lineSize];
-
     CGMutablePathRef backgroundPath = CGPathCreateMutable();
 
     //
@@ -286,7 +285,7 @@
     circleLayer.backgroundColor = [UIColor clearColor].CGColor;
     [circleLayer setStrokeColor:plot.style.strokeColor.CGColor];
     [circleLayer setLineWidth:(int)plot.style.dotSize];
-
+    [circleLayer setOpaque:YES];
     CGMutablePathRef circlePath = CGPathCreateMutable();
 
     //
@@ -296,7 +295,7 @@
     graphLayer.backgroundColor = [UIColor clearColor].CGColor;
     [graphLayer setStrokeColor:plot.style.strokeColor.CGColor];
     [graphLayer setLineWidth:(int)plot.style.lineSize];
-
+    [graphLayer setOpaque:YES];
     CGMutablePathRef graphPath = CGPathCreateMutable();
 
     CGPoint firstPoint = [self dataPointToCoordinates:plot.dataPoints[0]];
