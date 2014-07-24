@@ -680,7 +680,7 @@
         return;
 
     NSString *titleString = [_delegate titleForLineGraph:self];
-    CGFloat centerX = (self.bounds.size.width - LEFT_MARGIN_TO_LEAVE)/2;
+    CGFloat centerX = (self.bounds.size.width)/2;
     CGFloat centerY = TOP_MARGIN_TO_LEAVE/2;
     NSMutableParagraphStyle *paragraphStyle = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
     paragraphStyle.alignment = NSTextAlignmentCenter;
